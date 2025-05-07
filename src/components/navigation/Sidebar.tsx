@@ -11,7 +11,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Facebook,
-  Wand2
+  Wand2,
+  BarChart
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -25,6 +26,7 @@ const Sidebar = () => {
     { icon: FilePlus, label: "Criar Campanha", to: "/onboarding" },
     { icon: Wand2, label: "Studio de Criativos", to: "/creative-studio" },
     { icon: Facebook, label: "Conexão com Facebook", to: "/facebook" },
+    { icon: BarChart, label: "Métricas", to: "/metrics" },
     { icon: FolderOpen, label: "Meus Arquivos", to: "/dashboard?tab=files" },
     { icon: LifeBuoy, label: "Suporte", to: "/dashboard?tab=support" },
   ];
