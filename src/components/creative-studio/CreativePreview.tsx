@@ -1,8 +1,9 @@
 
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Download, Save } from "lucide-react";
+import { Download, Save, Rocket } from "lucide-react";
 import { GeneratedCreative } from "./CreativeGenerator";
+import { useNavigate } from "react-router-dom";
 
 interface CreativePreviewProps {
   creative: GeneratedCreative;
@@ -10,6 +11,8 @@ interface CreativePreviewProps {
 }
 
 const CreativePreview = ({ creative, onSave }: CreativePreviewProps) => {
+  const navigate = useNavigate();
+  
   const handleDownload = () => {
     // Create a temporary anchor element to trigger download
     const link = document.createElement('a');
@@ -18,6 +21,20 @@ const CreativePreview = ({ creative, onSave }: CreativePreviewProps) => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+  
+  const handleCreateCampaign = () => {
+    // Navigate to campaign creation with creative data
+    navigate("/onboarding", { 
+      state: { 
+        creative: {
+          imageUrl: creative.imageUrl,
+          title: creative.title,
+          description: creative.description,
+          cta: creative.cta,
+        } 
+      } 
+    });
   };
   
   return (
@@ -67,6 +84,10 @@ const CreativePreview = ({ creative, onSave }: CreativePreviewProps) => {
         <Button variant="outline" onClick={handleDownload}>
           <Download className="mr-2 h-4 w-4" />
           Download Imagem
+        </Button>
+        <Button variant="outline" onClick={handleCreateCampaign}>
+          <Rocket className="mr-2 h-4 w-4" />
+          Usar em Campanha
         </Button>
         <Button onClick={onSave}>
           <Save className="mr-2 h-4 w-4" />

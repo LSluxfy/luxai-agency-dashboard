@@ -1,14 +1,15 @@
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Upload, Sparkles, Loader2, Download, Lightbulb } from "lucide-react";
+import { Upload, Sparkles, Loader2, Download, Lightbulb, Save } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import ImageUploader from "./ImageUploader";
 import CreativePreview from "./CreativePreview";
+import { useNavigate } from "react-router-dom";
 
 // Função local para gerar IDs únicos (substituindo uuid)
 const uuidv4 = () => Math.random().toString(36).substring(2, 15);
@@ -31,10 +32,37 @@ export interface GeneratedCreative {
 
 const CreativeGenerator = () => {
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
+  const [savedImages, setSavedImages] = useState<any[]>([]);
   const [prompt, setPrompt] = useState<string>("");
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [generatedCreative, setGeneratedCreative] = useState<GeneratedCreative | null>(null);
   const { user } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Fetch saved creatives for image selection
+    const fetchSavedCreatives = async () => {
+      if (!user) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('creatives')
+          .select('id, image_url, title')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+          
+        if (error) {
+          throw error;
+        }
+        
+        setSavedImages(data || []);
+      } catch (error) {
+        console.error("Error fetching saved creatives:", error);
+      }
+    };
+    
+    fetchSavedCreatives();
+  }, [user]);
 
   const handleImagesUploaded = useCallback((images: UploadedImage[]) => {
     setUploadedImages(images);
@@ -124,6 +152,65 @@ const CreativeGenerator = () => {
       toast.error("Erro ao salvar o criativo. Por favor, tente novamente.");
     }
   }, [generatedCreative, user, prompt]);
+
+  const handleSaveAsCampaign = useCallback(async () => {
+    if (!generatedCreative || !user) return;
+    
+    try {
+      // First save the creative
+      const { data: creativeData, error: creativeError } = await supabase
+        .from('creatives')
+        .insert({
+          user_id: user.id,
+          title: `Criativo - ${new Date().toLocaleString('pt-BR')}`,
+          prompt: prompt,
+          image_url: generatedCreative.imageUrl,
+          generated_title: generatedCreative.title,
+          generated_description: generatedCreative.description,
+          generated_cta: generatedCreative.cta
+        })
+        .select()
+        .single();
+
+      if (creativeError) {
+        throw creativeError;
+      }
+      
+      // Create a campaign using the generated strategy
+      const { error: campaignError } = await supabase
+        .from('campaigns')
+        .insert({
+          user_id: user.id,
+          name: `Campanha - ${generatedCreative.title.substring(0, 30)}`,
+          objective: "Conversão",
+          status: "active",
+          creative_id: creativeData.id,
+          strategy: generatedCreative.strategy,
+          created_at: new Date().toISOString(),
+          budget: 1000, // Default budget
+          metrics: {
+            impressions: 0,
+            clicks: 0,
+            conversions: 0
+          }
+        });
+
+      if (campaignError) {
+        throw campaignError;
+      }
+      
+      toast.success("Campanha criada com sucesso!", {
+        description: "Você pode visualizá-la no Dashboard."
+      });
+      
+      // Navigate to dashboard to see the campaign
+      navigate("/dashboard");
+      
+    } catch (error) {
+      console.error("Error saving campaign:", error);
+      toast.error("Erro ao criar campanha. Por favor, tente novamente.");
+    }
+  }, [generatedCreative, user, prompt, navigate]);
   
   return (
     <div className="space-y-6">
@@ -142,6 +229,7 @@ const CreativeGenerator = () => {
             onImagesUploaded={handleImagesUploaded}
             uploadedImages={uploadedImages}
             maxImages={5}
+            savedImages={savedImages}
           />
         </CardContent>
       </Card>
@@ -198,6 +286,14 @@ const CreativeGenerator = () => {
                 <div className="whitespace-pre-wrap text-sm">
                   {generatedCreative.strategy}
                 </div>
+                <Button 
+                  onClick={handleSaveAsCampaign} 
+                  className="mt-4"
+                  variant="secondary"
+                >
+                  <Save className="mr-2 h-4 w-4" />
+                  Salvar como Campanha
+                </Button>
               </CardContent>
             </Card>
           )}

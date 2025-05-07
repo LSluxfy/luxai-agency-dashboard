@@ -4,6 +4,9 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import MetricCard from "@/components/ui-custom/MetricCard";
 import CampaignCard from "@/components/ui-custom/CampaignCard";
+import { useAuth } from "@/contexts/AuthContext";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 // Mock data for demonstration
 const mockCampaigns = [
@@ -54,7 +57,31 @@ const mockCampaigns = [
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const username = "João";
+  const { user } = useAuth();
+  const [username, setUsername] = useState<string>("");
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (!user) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('username, full_name')
+          .eq('id', user.id)
+          .single();
+          
+        if (error) throw error;
+        
+        // Use full_name if available, otherwise fallback to username
+        setUsername(data.full_name || data.username || "Usuário");
+      } catch (error) {
+        console.error("Error fetching user profile:", error);
+      }
+    };
+    
+    fetchUserProfile();
+  }, [user]);
 
   return (
     <div>

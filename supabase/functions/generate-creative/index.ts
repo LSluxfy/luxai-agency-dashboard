@@ -25,10 +25,19 @@ serve(async (req) => {
       );
     }
 
+    // Enhanced prompt that includes reference to the uploaded images
+    let enhancedPrompt = prompt;
+    if (referenceImages && referenceImages.length > 0) {
+      enhancedPrompt += `\n\nContexto adicional: O usuário enviou ${referenceImages.length} imagem(ns) de referência que você deve considerar ao criar o anúncio. As imagens são importantes para o contexto da campanha.`;
+      
+      // Log for debugging
+      console.log(`Generating creative with ${referenceImages.length} reference images`);
+    }
+
     // 1. Generate campaign strategy and ad texts with GPT-4
     const contextPrompt = `Você é um especialista em tráfego pago. Crie uma estratégia de campanha para Facebook Ads com base neste comando e gere os textos (headline, descrição e CTA).
     
-    Comando do usuário: ${prompt}
+    Comando do usuário: ${enhancedPrompt}
     
     Responda em formato JSON com a seguinte estrutura:
     {
@@ -83,7 +92,13 @@ serve(async (req) => {
     // 2. Generate creative image with DALL-E
     console.log("Requesting image generation from DALL-E...");
     
-    const imagePrompt = `Create a high-quality Facebook advertisement image based on this brief: ${prompt}. The image should be professional, eye-catching, and suitable for a marketing campaign.`;
+    // Enhanced image prompt that includes reference to uploaded images if available
+    let imagePrompt = `Create a high-quality Facebook advertisement image based on this brief: ${prompt}.`;
+    if (referenceImages && referenceImages.length > 0) {
+      imagePrompt += ` Use the uploaded reference images as inspiration for style and content. The image should be professional, eye-catching, and suitable for a marketing campaign.`;
+    } else {
+      imagePrompt += ` The image should be professional, eye-catching, and suitable for a marketing campaign.`;
+    }
     
     const imageResponse = await fetch('https://api.openai.com/v1/images/generations', {
       method: 'POST',

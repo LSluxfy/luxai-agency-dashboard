@@ -11,6 +11,7 @@ import CampaignDetail from "./pages/CampaignDetail";
 import FacebookConnection from "./pages/FacebookConnection";
 import FacebookCallback from "./pages/FacebookCallback";
 import CreativeStudio from "./pages/CreativeStudio";
+import Metrics from "./pages/Metrics";
 import AppLayout from "./components/layouts/AppLayout";
 import NotFound from "./pages/NotFound";
 import { AuthProvider } from "./contexts/AuthContext";
@@ -37,6 +38,7 @@ const App = () => (
               <Route path="/facebook" element={<FacebookConnection />} />
               <Route path="/facebook/callback" element={<FacebookCallback />} />
               <Route path="/creative-studio" element={<CreativeStudio />} />
+              <Route path="/metrics" element={<Metrics />} />
             </Route>
             
             <Route path="*" element={<NotFound />} />

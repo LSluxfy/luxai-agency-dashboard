@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -74,15 +73,22 @@ const FacebookConnection = () => {
     
     setIsConnecting(true);
     
-    // Build the Facebook OAuth URL
+    // Build the Facebook OAuth URL and redirect to Facebook authorization page
     const facebookAuthUrl = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${FACEBOOK_CONFIG.clientId}&redirect_uri=${encodeURIComponent(FACEBOOK_CONFIG.redirectUri)}&state=${FACEBOOK_CONFIG.state}&response_type=code&scope=${FACEBOOK_CONFIG.scope}`;
     
-    // In a real application, we'd store the state in localStorage or sessionStorage
-    // to verify it when the user returns from Facebook
+    // Store state for verification when user returns from Facebook
     localStorage.setItem('facebookAuthState', FACEBOOK_CONFIG.state);
     
-    // Redirect the user to Facebook authorization page
-    window.location.href = facebookAuthUrl;
+    // Open Facebook ad manager in a new window instead of redirecting
+    window.open(facebookAuthUrl, '_blank', 'width=800,height=600');
+    
+    // Reset connection state after a short delay
+    setTimeout(() => {
+      setIsConnecting(false);
+      toast.info("Concluindo conexão com o Facebook", {
+        description: "Siga as instruções na janela aberta para continuar."
+      });
+    }, 2000);
   };
 
   const handleSetPrimary = (accountId: string) => {
