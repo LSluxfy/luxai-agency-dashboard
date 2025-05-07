@@ -9,18 +9,28 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Slider } from "@/components/ui/slider";
-import { ArrowLeft, ArrowRight, Upload, Sparkles, Users, TrendingUp, Activity } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
+import { ArrowLeft, ArrowRight, Upload, Sparkles, Users, TrendingUp, Activity, Calendar as CalendarIcon, User, Target, Search } from "lucide-react";
 import OnboardingStepIndicator from "@/components/ui-custom/OnboardingStepIndicator";
 import Logo from "@/components/ui-custom/Logo";
 import { useToast } from "@/hooks/use-toast";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { cn } from "@/lib/utils";
 
 const STEPS = [
   "Informações",
   "Criativos",
   "Objetivo",
   "Configuração"
+];
+
+const INTERESTS = [
+  "Tecnologia", "Esportes", "Moda", "Viagens", "Gastronomia", "Fitness",
+  "Beleza", "Música", "Cinema", "Jogos", "Carros", "Finanças",
+  "Educação", "Pets", "Saúde", "Decoração", "Negócios", "Literatura"
 ];
 
 const Onboarding = () => {
@@ -38,7 +48,15 @@ const Onboarding = () => {
     region: "",
     state: "",
     cities: [] as string[],
-    customLocations: false
+    customLocations: false,
+    // New fields
+    ageMin: "18",
+    ageMax: "65",
+    pixelId: "",
+    interests: [] as string[],
+    startDate: new Date(),
+    endDate: null as Date | null,
+    scheduled: false,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
@@ -51,6 +69,17 @@ const Onboarding = () => {
 
   const handleSelectChange = (name: string, value: string) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleInterestToggle = (interest: string) => {
+    setFormData((prev) => {
+      const currentInterests = [...prev.interests];
+      if (currentInterests.includes(interest)) {
+        return { ...prev, interests: currentInterests.filter(i => i !== interest) };
+      } else {
+        return { ...prev, interests: [...currentInterests, interest] };
+      }
+    });
   };
 
   const handleFileUpload = () => {
@@ -313,7 +342,168 @@ const Onboarding = () => {
                   </div>
                 </div>
 
-                <div className="space-y-4">
+                {/* New section: Age Range */}
+                <div className="space-y-4 border-t pt-6">
+                  <Label className="flex items-center text-base">
+                    <User className="mr-2 h-4 w-4" />
+                    Faixa Etária (opcional)
+                  </Label>
+                  <div className="flex space-x-4">
+                    <div className="w-1/2 space-y-2">
+                      <Label htmlFor="ageMin">Idade Mínima</Label>
+                      <Select 
+                        value={formData.ageMin} 
+                        onValueChange={(value) => handleSelectChange("ageMin", value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Idade mínima" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Array.from({ length: 48 }, (_, i) => i + 13).map(age => (
+                            <SelectItem key={age} value={age.toString()}>{age} anos</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="w-1/2 space-y-2">
+                      <Label htmlFor="ageMax">Idade Máxima</Label>
+                      <Select 
+                        value={formData.ageMax} 
+                        onValueChange={(value) => handleSelectChange("ageMax", value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Idade máxima" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Array.from({ length: 53 }, (_, i) => i + 18).map(age => (
+                            <SelectItem key={age} value={age.toString()}>{age} anos</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Facebook Pixel ID */}
+                <div className="space-y-3 border-t pt-6">
+                  <Label className="flex items-center">
+                    <Search className="mr-2 h-4 w-4" />
+                    Pixel do Facebook (opcional)
+                  </Label>
+                  <Input
+                    id="pixelId"
+                    name="pixelId"
+                    placeholder="Insira o ID do seu Pixel do Facebook"
+                    value={formData.pixelId}
+                    onChange={handleChange}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    A configuração do pixel permitirá melhor rastreamento de conversões.
+                  </p>
+                </div>
+
+                {/* Interests */}
+                <div className="space-y-4 border-t pt-6">
+                  <Label className="flex items-center text-base">
+                    <Target className="mr-2 h-4 w-4" />
+                    Interesses do Público (opcional)
+                  </Label>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Selecione os interesses relevantes para o seu público-alvo
+                  </p>
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-3">
+                    {INTERESTS.map((interest) => (
+                      <div key={interest} className="flex items-center space-x-2">
+                        <Checkbox 
+                          id={`interest-${interest}`}
+                          checked={formData.interests.includes(interest)}
+                          onCheckedChange={() => handleInterestToggle(interest)}
+                        />
+                        <Label 
+                          htmlFor={`interest-${interest}`}
+                          className="text-sm cursor-pointer"
+                        >
+                          {interest}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Campaign Schedule */}
+                <div className="space-y-4 border-t pt-6">
+                  <div className="flex items-center justify-between">
+                    <Label className="flex items-center text-base">
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      Programação da Campanha
+                    </Label>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="scheduled" 
+                        checked={formData.scheduled}
+                        onCheckedChange={(checked) => handleCheckboxChange(!!checked, "scheduled")}
+                      />
+                      <Label htmlFor="scheduled" className="text-sm">Programar datas</Label>
+                    </div>
+                  </div>
+
+                  {formData.scheduled && (
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label>Data de Início</Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className="w-full justify-start text-left font-normal"
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {formData.startDate ? format(formData.startDate, "dd/MM/yyyy") : "Selecione uma data"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0">
+                            <Calendar
+                              mode="single"
+                              selected={formData.startDate}
+                              onSelect={(date) => date && setFormData(prev => ({ ...prev, startDate: date }))}
+                              initialFocus
+                              disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Data de Término (opcional)</Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className="w-full justify-start text-left font-normal"
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {formData.endDate ? format(formData.endDate, "dd/MM/yyyy") : "Selecione uma data"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0">
+                            <Calendar
+                              mode="single"
+                              selected={formData.endDate}
+                              onSelect={(date) => setFormData(prev => ({ ...prev, endDate: date }))}
+                              initialFocus
+                              disabled={(date) => 
+                                date < formData.startDate || 
+                                date < new Date(new Date().setHours(0, 0, 0, 0))
+                              }
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-4 border-t pt-6">
                   <Label className="text-base">Localização do Público</Label>
                   
                   <div className="space-y-3">
