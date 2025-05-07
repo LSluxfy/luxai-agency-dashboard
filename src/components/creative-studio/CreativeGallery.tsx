@@ -4,54 +4,58 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Eye, Download, Rocket, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import CreativeDetailModal from "./CreativeDetailModal";
 import { GeneratedCreative } from "./CreativeGenerator";
+
+interface StoredCreative {
+  id: string;
+  user_id: string;
+  title: string;
+  prompt: string;
+  image_url: string;
+  generated_title: string;
+  generated_description: string;
+  generated_cta: string;
+  created_at: string;
+}
 
 const CreativeGallery = () => {
   const [creatives, setCreatives] = useState<GeneratedCreative[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedCreative, setSelectedCreative] = useState<GeneratedCreative | null>(null);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const { user } = useAuth();
 
   useEffect(() => {
-    // In a real application, this would fetch from an API or database
-    // Simulating API fetch with mock data
     const fetchCreatives = async () => {
+      if (!user) return;
+      
       try {
         setLoading(true);
         
-        // Simulate network latency
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        const { data, error } = await supabase
+          .from('creatives')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+          
+        if (error) {
+          throw error;
+        }
         
-        // Mock data
-        const mockCreatives: GeneratedCreative[] = [
-          {
-            id: 'creative-1',
-            imageUrl: 'https://placehold.co/600x400/1A73E8/FFFFFF/png?text=Criativo+1',
-            title: 'Transforme sua vida com nosso produto',
-            description: 'Resultados comprovados para uma vida mais saudável e feliz.',
-            cta: 'EXPERIMENTE AGORA',
-            createdAt: '2025-05-01T14:30:00Z'
-          },
-          {
-            id: 'creative-2',
-            imageUrl: 'https://placehold.co/600x400/1A73E8/FFFFFF/png?text=Criativo+2',
-            title: 'Promoção exclusiva por tempo limitado',
-            description: 'Aproveite descontos especiais em nossa linha premium.',
-            cta: 'GARANTA O SEU',
-            createdAt: '2025-04-28T09:15:00Z'
-          },
-          {
-            id: 'creative-3',
-            imageUrl: 'https://placehold.co/600x400/1A73E8/FFFFFF/png?text=Criativo+3',
-            title: 'Novidade que vai surpreender você',
-            description: 'Descubra o segredo que está transformando o mercado.',
-            cta: 'SAIBA MAIS',
-            createdAt: '2025-04-25T16:45:00Z'
-          }
-        ];
+        // Transform from database format to component format
+        const formattedCreatives = (data as StoredCreative[]).map(item => ({
+          id: item.id,
+          imageUrl: item.image_url,
+          title: item.generated_title,
+          description: item.generated_description,
+          cta: item.generated_cta,
+          createdAt: item.created_at,
+        }));
         
-        setCreatives(mockCreatives);
+        setCreatives(formattedCreatives);
       } catch (error) {
         console.error("Error fetching creatives:", error);
         toast.error("Erro ao carregar seus criativos.");
@@ -61,7 +65,7 @@ const CreativeGallery = () => {
     };
     
     fetchCreatives();
-  }, []);
+  }, [user]);
 
   const handleViewCreative = (creative: GeneratedCreative) => {
     setSelectedCreative(creative);

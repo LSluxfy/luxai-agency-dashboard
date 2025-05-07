@@ -5,6 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Upload, Sparkles, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { v4 as uuidv4 } from "uuid";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import ImageUploader from "./ImageUploader";
 import CreativePreview from "./CreativePreview";
 
@@ -28,6 +31,7 @@ const CreativeGenerator = () => {
   const [prompt, setPrompt] = useState<string>("");
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [generatedCreative, setGeneratedCreative] = useState<GeneratedCreative | null>(null);
+  const { user } = useAuth();
 
   const handleImagesUploaded = useCallback((images: UploadedImage[]) => {
     setUploadedImages(images);
@@ -37,7 +41,7 @@ const CreativeGenerator = () => {
     setPrompt(e.target.value);
   }, []);
 
-  const handleGenerateCreative = useCallback(() => {
+  const handleGenerateCreative = useCallback(async () => {
     // Validation checks
     if (uploadedImages.length === 0) {
       toast.error("Por favor, faça o upload de pelo menos uma imagem de referência.");
@@ -52,34 +56,61 @@ const CreativeGenerator = () => {
     // Start generation process
     setIsGenerating(true);
 
-    // Simulating AI generation - this would be replaced with actual API call
-    setTimeout(() => {
-      const mockCreative: GeneratedCreative = {
-        id: `creative-${Date.now()}`,
-        imageUrl: uploadedImages[0].url, // Just using the first image as a placeholder
-        title: "Título gerado pela IA com base no seu briefing",
-        description: "Descrição gerada pela IA que combina elementos do seu comando com as imagens de referência fornecidas.",
-        cta: "COMPRAR AGORA",
-        createdAt: new Date().toISOString(),
-      };
-      
-      setGeneratedCreative(mockCreative);
+    try {
+      // Simulating AI generation - this would be replaced with actual API call
+      // In a real app, we would send the images and prompt to a backend service
+      setTimeout(() => {
+        const mockCreative: GeneratedCreative = {
+          id: uuidv4(),
+          imageUrl: uploadedImages[0].url, // Just using the first image as a placeholder
+          title: "Título gerado pela IA com base no seu briefing",
+          description: "Descrição gerada pela IA que combina elementos do seu comando com as imagens de referência fornecidas.",
+          cta: "COMPRAR AGORA",
+          createdAt: new Date().toISOString(),
+        };
+        
+        setGeneratedCreative(mockCreative);
+        setIsGenerating(false);
+        toast.success("Criativo gerado com sucesso!");
+      }, 2500);
+    } catch (error) {
+      console.error("Error generating creative:", error);
+      toast.error("Erro ao gerar criativo. Por favor, tente novamente.");
       setIsGenerating(false);
-      toast.success("Criativo gerado com sucesso!");
-    }, 3000);
+    }
   }, [uploadedImages, prompt]);
 
-  const handleSaveCreative = useCallback(() => {
-    if (!generatedCreative) return;
+  const handleSaveCreative = useCallback(async () => {
+    if (!generatedCreative || !user) return;
     
-    // This would save to the user's account in a real implementation
-    toast.success("Criativo salvo na sua galeria!");
-    
-    // Reset the form for a new creative
-    setGeneratedCreative(null);
-    setPrompt("");
-    setUploadedImages([]);
-  }, [generatedCreative]);
+    try {
+      const { error } = await supabase
+        .from('creatives')
+        .insert({
+          user_id: user.id,
+          title: `Criativo - ${new Date().toLocaleString('pt-BR')}`,
+          prompt: prompt,
+          image_url: generatedCreative.imageUrl,
+          generated_title: generatedCreative.title,
+          generated_description: generatedCreative.description,
+          generated_cta: generatedCreative.cta
+        });
+
+      if (error) {
+        throw error;
+      }
+      
+      toast.success("Criativo salvo na sua galeria!");
+      
+      // Reset the form for a new creative
+      setGeneratedCreative(null);
+      setPrompt("");
+      setUploadedImages([]);
+    } catch (error) {
+      console.error("Error saving creative:", error);
+      toast.error("Erro ao salvar o criativo. Por favor, tente novamente.");
+    }
+  }, [generatedCreative, user, prompt]);
   
   return (
     <div className="space-y-6">
