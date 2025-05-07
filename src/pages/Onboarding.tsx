@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,13 +12,17 @@ import { Slider } from "@/components/ui/slider";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
-import { ArrowLeft, ArrowRight, Upload, Sparkles, Users, TrendingUp, Activity, Calendar as CalendarIcon, User, Target, Search } from "lucide-react";
+import { ArrowLeft, ArrowRight, Sparkles, Users, TrendingUp, Activity, Calendar as CalendarIcon, User, Target, Search } from "lucide-react";
 import OnboardingStepIndicator from "@/components/ui-custom/OnboardingStepIndicator";
 import Logo from "@/components/ui-custom/Logo";
 import { useToast } from "@/hooks/use-toast";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
+import ImageUploader from "@/components/creative-studio/ImageUploader";
+import { UploadedImage } from "@/components/creative-studio/CreativeGenerator";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 const STEPS = [
   "Informações",
@@ -40,7 +44,7 @@ const Onboarding = () => {
     website: "",
     niche: "",
     targetAudience: "",
-    files: [] as string[],
+    files: [] as UploadedImage[],
     objective: "leads",
     budget: 20,
     budgetType: "daily",
@@ -59,8 +63,39 @@ const Onboarding = () => {
     scheduled: false,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [savedImages, setSavedImages] = useState<any[]>([]);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
+
+  // Fetch saved creatives for image selection
+  useEffect(() => {
+    const fetchSavedCreatives = async () => {
+      if (!user) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('creatives')
+          .select('id, image_url, title')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+          
+        if (error) {
+          throw error;
+        }
+        
+        setSavedImages(data || []);
+      } catch (error) {
+        console.error("Error fetching saved creatives:", error);
+        toast({
+          title: "Erro",
+          description: "Não foi possível carregar suas imagens salvas."
+        });
+      }
+    };
+    
+    fetchSavedCreatives();
+  }, [user, toast]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -82,18 +117,12 @@ const Onboarding = () => {
     });
   };
 
-  const handleFileUpload = () => {
-    // Simulate file upload
-    const newFile = `file-${Math.floor(Math.random() * 1000)}.jpg`;
-    setFormData((prev) => ({
-      ...prev,
-      files: [...prev.files, newFile]
-    }));
-    
-    toast({
-      title: "Arquivo enviado",
-      description: `${newFile} foi carregado com sucesso.`
-    });
+  const handleImagesUploaded = useCallback((images: UploadedImage[]) => {
+    setFormData(prev => ({ ...prev, files: images }));
+  }, []);
+
+  const handleCheckboxChange = (checked: boolean, name: string) => {
+    setFormData(prev => ({ ...prev, [name]: checked }));
   };
 
   const nextStep = () => {
@@ -124,10 +153,6 @@ const Onboarding = () => {
       });
       navigate("/dashboard");
     }, 2000);
-  };
-
-  const handleCheckboxChange = (checked: boolean, name: string) => {
-    setFormData(prev => ({ ...prev, [name]: checked }));
   };
 
   return (
@@ -206,33 +231,17 @@ const Onboarding = () => {
             {/* Step 2: Creative uploads */}
             {currentStep === 1 && (
               <div className="space-y-6">
-                <div className="text-center p-6 border-2 border-dashed border-muted rounded-lg">
-                  <Upload className="mx-auto h-12 w-12 text-muted-foreground" />
-                  <h3 className="mt-2 text-lg font-semibold">Arraste arquivos ou clique para fazer upload</h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Suporta imagens, vídeos e PDFs até 20MB
-                  </p>
-                  <Button 
-                    onClick={handleFileUpload} 
-                    variant="secondary" 
-                    className="mt-4"
-                  >
-                    Selecionar Arquivos
-                  </Button>
-                </div>
-
-                {formData.files.length > 0 && (
-                  <div>
-                    <h4 className="text-sm font-medium mb-2">Arquivos carregados ({formData.files.length})</h4>
-                    <ul className="space-y-2">
-                      {formData.files.map((file, index) => (
-                        <li key={index} className="text-sm bg-secondary p-2 rounded-md">
-                          {file}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
+                <h3 className="text-lg font-medium mb-4">Envie ou selecione imagens para sua campanha</h3>
+                <p className="text-muted-foreground mb-4">
+                  Você pode fazer upload de novas imagens ou selecionar imagens que você já criou no Studio de Criativos.
+                </p>
+                
+                <ImageUploader 
+                  onImagesUploaded={handleImagesUploaded}
+                  uploadedImages={formData.files}
+                  maxImages={5}
+                  savedImages={savedImages}
+                />
               </div>
             )}
 
