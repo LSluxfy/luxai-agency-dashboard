@@ -10,7 +10,8 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
-  Facebook
+  Facebook,
+  Wand2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -22,6 +23,7 @@ const Sidebar = () => {
   const navItems = [
     { icon: LayoutDashboard, label: "Dashboard", to: "/dashboard" },
     { icon: FilePlus, label: "Criar Campanha", to: "/onboarding" },
+    { icon: Wand2, label: "Studio de Criativos", to: "/creative-studio" },
     { icon: Facebook, label: "Conexão com Facebook", to: "/facebook" },
     { icon: FolderOpen, label: "Meus Arquivos", to: "/dashboard?tab=files" },
     { icon: LifeBuoy, label: "Suporte", to: "/dashboard?tab=support" },
