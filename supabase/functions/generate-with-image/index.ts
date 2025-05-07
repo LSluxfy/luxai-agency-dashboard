@@ -35,15 +35,6 @@ serve(async (req) => {
     }
 
     // Validate required fields
-    if (!body.prompt) {
-      return new Response(
-        JSON.stringify({ error: "Missing required field: prompt" }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400,
-        }
-      )
-    }
-
     if (!body.image) {
       return new Response(
         JSON.stringify({ error: "Missing required field: image" }), {
@@ -53,16 +44,14 @@ serve(async (req) => {
       )
     }
 
-    console.log("Generating image with prompt and reference image")
+    console.log("Generating image with reference image")
     
     // Build request body for Replicate API
     const replicateBody = {
-      version: "a9758cbf4f3d1ec5c8fa9cfb9d2d408f2db7e9d2a7db391037d71a1a0a6eaa4c",
+      version: "15a3689ee13b0d2616e98820eca31d4c3abcd36672df6afce5cb6feb1d66087d",
       input: {
-        prompt: body.prompt,
         image: body.image,
-        num_inference_steps: 30,
-        guidance_scale: 7.5
+        num_inference_steps: "25"
       }
     }
 
@@ -72,6 +61,7 @@ serve(async (req) => {
       headers: {
         Authorization: `Token ${REPLICATE_API_KEY}`,
         "Content-Type": "application/json",
+        "Prefer": "wait"
       },
       body: JSON.stringify(replicateBody),
     })
