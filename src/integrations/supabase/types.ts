@@ -45,6 +45,66 @@ export type Database = {
         }
         Relationships: []
       }
+      invoices: {
+        Row: {
+          amount_cents: number
+          due_date: string
+          id: string
+          invoice_number: string
+          issued_date: string
+          pdf_url: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          amount_cents: number
+          due_date: string
+          id?: string
+          invoice_number: string
+          issued_date?: string
+          pdf_url?: string | null
+          status: string
+          user_id: string
+        }
+        Update: {
+          amount_cents?: number
+          due_date?: string
+          id?: string
+          invoice_number?: string
+          issued_date?: string
+          pdf_url?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      plan_limits: {
+        Row: {
+          ai_creatives_limit: number
+          facebook_accounts_limit: number
+          id: number
+          monthly_campaigns_limit: number
+          plan_name: string
+          price_cents: number
+        }
+        Insert: {
+          ai_creatives_limit: number
+          facebook_accounts_limit: number
+          id?: number
+          monthly_campaigns_limit: number
+          plan_name: string
+          price_cents: number
+        }
+        Update: {
+          ai_creatives_limit?: number
+          facebook_accounts_limit?: number
+          id?: number
+          monthly_campaigns_limit?: number
+          plan_name?: string
+          price_cents?: number
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -52,6 +112,9 @@ export type Database = {
           created_at: string | null
           full_name: string | null
           id: string
+          plan: string
+          plan_next_billing: string
+          plan_start_date: string
           updated_at: string | null
           username: string | null
         }
@@ -61,6 +124,9 @@ export type Database = {
           created_at?: string | null
           full_name?: string | null
           id: string
+          plan?: string
+          plan_next_billing?: string
+          plan_start_date?: string
           updated_at?: string | null
           username?: string | null
         }
@@ -70,6 +136,9 @@ export type Database = {
           created_at?: string | null
           full_name?: string | null
           id?: string
+          plan?: string
+          plan_next_billing?: string
+          plan_start_date?: string
           updated_at?: string | null
           username?: string | null
         }

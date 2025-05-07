@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -12,7 +11,8 @@ import {
   ChevronRight,
   Facebook,
   Wand2,
-  BarChart
+  BarChart,
+  CreditCard
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -27,6 +27,7 @@ const Sidebar = () => {
     { icon: Wand2, label: "Studio de Criativos", to: "/creative-studio" },
     { icon: Facebook, label: "Conexão com Facebook", to: "/facebook" },
     { icon: BarChart, label: "Métricas", to: "/metrics" },
+    { icon: CreditCard, label: "Financeiro", to: "/finance" },
     { icon: FolderOpen, label: "Meus Arquivos", to: "/dashboard?tab=files" },
     { icon: LifeBuoy, label: "Suporte", to: "/dashboard?tab=support" },
   ];

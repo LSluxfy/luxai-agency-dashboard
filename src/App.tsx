@@ -12,6 +12,7 @@ import FacebookConnection from "./pages/FacebookConnection";
 import FacebookCallback from "./pages/FacebookCallback";
 import CreativeStudio from "./pages/CreativeStudio";
 import Metrics from "./pages/Metrics";
+import Finance from "./pages/Finance";
 import AppLayout from "./components/layouts/AppLayout";
 import NotFound from "./pages/NotFound";
 import { AuthProvider } from "./contexts/AuthContext";
@@ -39,6 +40,7 @@ const App = () => (
               <Route path="/facebook/callback" element={<FacebookCallback />} />
               <Route path="/creative-studio" element={<CreativeStudio />} />
               <Route path="/metrics" element={<Metrics />} />
+              <Route path="/finance" element={<Finance />} />
             </Route>
             
             <Route path="*" element={<NotFound />} />
