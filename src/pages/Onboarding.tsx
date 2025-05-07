@@ -13,6 +13,8 @@ import { ArrowLeft, ArrowRight, Upload, Sparkles, Users, TrendingUp, Activity } 
 import OnboardingStepIndicator from "@/components/ui-custom/OnboardingStepIndicator";
 import Logo from "@/components/ui-custom/Logo";
 import { useToast } from "@/hooks/use-toast";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 const STEPS = [
   "Informações",
@@ -30,8 +32,13 @@ const Onboarding = () => {
     targetAudience: "",
     files: [] as string[],
     objective: "leads",
-    budget: 1000,
-    location: ""
+    budget: 20,
+    budgetType: "daily",
+    country: "brasil",
+    region: "",
+    state: "",
+    cities: [] as string[],
+    customLocations: false
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
@@ -88,6 +95,10 @@ const Onboarding = () => {
       });
       navigate("/dashboard");
     }, 2000);
+  };
+
+  const handleCheckboxChange = (checked: boolean, name: string) => {
+    setFormData(prev => ({ ...prev, [name]: checked }));
   };
 
   return (
@@ -258,46 +269,186 @@ const Onboarding = () => {
             {/* Step 4: Budget and location */}
             {currentStep === 3 && (
               <div className="space-y-6">
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <Label htmlFor="budget">Orçamento Mensal (R$)</Label>
-                    <span className="text-sm font-medium">
-                      R$ {formData.budget.toLocaleString()}
-                    </span>
+                <div className="space-y-4">
+                  <div>
+                    <Label>Tipo de Orçamento</Label>
+                    <RadioGroup
+                      value={formData.budgetType}
+                      onValueChange={(value) => handleSelectChange("budgetType", value)}
+                      className="flex space-x-4 mt-2"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="daily" id="daily" />
+                        <Label htmlFor="daily" className="cursor-pointer">Diário</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="monthly" id="monthly" />
+                        <Label htmlFor="monthly" className="cursor-pointer">Mensal</Label>
+                      </div>
+                    </RadioGroup>
                   </div>
-                  <Slider
-                    id="budget"
-                    min={500}
-                    max={50000}
-                    step={500}
-                    value={[formData.budget]}
-                    onValueChange={(value) => setFormData({ ...formData, budget: value[0] })}
-                    className="py-4"
-                  />
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>R$ 500</span>
-                    <span>R$ 50.000</span>
+
+                  <div className="space-y-3">
+                    <div className="flex justify-between">
+                      <Label htmlFor="budget">
+                        Orçamento {formData.budgetType === 'daily' ? 'Diário' : 'Mensal'} (R$)
+                      </Label>
+                      <span className="text-sm font-medium">
+                        R$ {formData.budget.toLocaleString()}
+                      </span>
+                    </div>
+                    <Slider
+                      id="budget"
+                      min={20}
+                      max={formData.budgetType === 'daily' ? 1000 : 30000}
+                      step={formData.budgetType === 'daily' ? 10 : 100}
+                      value={[formData.budget]}
+                      onValueChange={(value) => setFormData({ ...formData, budget: value[0] })}
+                      className="py-4"
+                    />
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>R$ {formData.budgetType === 'daily' ? '20' : '20'}</span>
+                      <span>R$ {formData.budgetType === 'daily' ? '1.000' : '30.000'}</span>
+                    </div>
                   </div>
                 </div>
 
-                <div className="space-y-3">
-                  <Label htmlFor="location">Localização do Público</Label>
-                  <Select 
-                    value={formData.location} 
-                    onValueChange={(value) => handleSelectChange("location", value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione a localização" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="brasil">Todo o Brasil</SelectItem>
-                      <SelectItem value="sudeste">Região Sudeste</SelectItem>
-                      <SelectItem value="sul">Região Sul</SelectItem>
-                      <SelectItem value="norte">Região Norte</SelectItem>
-                      <SelectItem value="nordeste">Região Nordeste</SelectItem>
-                      <SelectItem value="centro-oeste">Região Centro-Oeste</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="space-y-4">
+                  <Label className="text-base">Localização do Público</Label>
+                  
+                  <div className="space-y-3">
+                    <Label htmlFor="country">País</Label>
+                    <Select 
+                      value={formData.country} 
+                      onValueChange={(value) => handleSelectChange("country", value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o país" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="brasil">Brasil</SelectItem>
+                        <SelectItem value="estados_unidos">Estados Unidos</SelectItem>
+                        <SelectItem value="portugal">Portugal</SelectItem>
+                        <SelectItem value="espanha">Espanha</SelectItem>
+                        <SelectItem value="argentina">Argentina</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {formData.country === "brasil" && (
+                    <div className="space-y-4">
+                      <div className="space-y-3">
+                        <Label htmlFor="region">Região</Label>
+                        <Select 
+                          value={formData.region} 
+                          onValueChange={(value) => handleSelectChange("region", value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione a região" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="sudeste">Região Sudeste</SelectItem>
+                            <SelectItem value="sul">Região Sul</SelectItem>
+                            <SelectItem value="norte">Região Norte</SelectItem>
+                            <SelectItem value="nordeste">Região Nordeste</SelectItem>
+                            <SelectItem value="centro-oeste">Região Centro-Oeste</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {formData.region && (
+                        <div className="space-y-3">
+                          <Label htmlFor="state">Estado</Label>
+                          <Select 
+                            value={formData.state} 
+                            onValueChange={(value) => handleSelectChange("state", value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione o estado" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {formData.region === "sudeste" && (
+                                <>
+                                  <SelectItem value="sp">São Paulo</SelectItem>
+                                  <SelectItem value="rj">Rio de Janeiro</SelectItem>
+                                  <SelectItem value="mg">Minas Gerais</SelectItem>
+                                  <SelectItem value="es">Espírito Santo</SelectItem>
+                                </>
+                              )}
+                              {formData.region === "sul" && (
+                                <>
+                                  <SelectItem value="pr">Paraná</SelectItem>
+                                  <SelectItem value="sc">Santa Catarina</SelectItem>
+                                  <SelectItem value="rs">Rio Grande do Sul</SelectItem>
+                                </>
+                              )}
+                              {formData.region === "nordeste" && (
+                                <>
+                                  <SelectItem value="ba">Bahia</SelectItem>
+                                  <SelectItem value="pe">Pernambuco</SelectItem>
+                                  <SelectItem value="ce">Ceará</SelectItem>
+                                  <SelectItem value="ma">Maranhão</SelectItem>
+                                  <SelectItem value="pb">Paraíba</SelectItem>
+                                  <SelectItem value="rn">Rio Grande do Norte</SelectItem>
+                                  <SelectItem value="al">Alagoas</SelectItem>
+                                  <SelectItem value="se">Sergipe</SelectItem>
+                                  <SelectItem value="pi">Piauí</SelectItem>
+                                </>
+                              )}
+                              {formData.region === "norte" && (
+                                <>
+                                  <SelectItem value="am">Amazonas</SelectItem>
+                                  <SelectItem value="pa">Pará</SelectItem>
+                                  <SelectItem value="ro">Rondônia</SelectItem>
+                                  <SelectItem value="ap">Amapá</SelectItem>
+                                  <SelectItem value="ac">Acre</SelectItem>
+                                  <SelectItem value="rr">Roraima</SelectItem>
+                                  <SelectItem value="to">Tocantins</SelectItem>
+                                </>
+                              )}
+                              {formData.region === "centro-oeste" && (
+                                <>
+                                  <SelectItem value="df">Distrito Federal</SelectItem>
+                                  <SelectItem value="go">Goiás</SelectItem>
+                                  <SelectItem value="mt">Mato Grosso</SelectItem>
+                                  <SelectItem value="ms">Mato Grosso do Sul</SelectItem>
+                                </>
+                              )}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="flex items-center space-x-2 pt-2">
+                    <Checkbox 
+                      id="customLocations" 
+                      checked={formData.customLocations}
+                      onCheckedChange={(checked) => 
+                        handleCheckboxChange(!!checked, "customLocations")
+                      }
+                    />
+                    <Label 
+                      htmlFor="customLocations"
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      Quero definir localizações específicas (cidades, bairros, raios)
+                    </Label>
+                  </div>
+
+                  {formData.customLocations && (
+                    <Collapsible className="space-y-2">
+                      <CollapsibleTrigger className="flex items-center w-full text-sm font-medium text-left text-blue-600 hover:text-blue-800">
+                        <span>Configurar localizações específicas</span>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="space-y-4 px-4 pt-2 pb-4 border border-gray-100 bg-gray-50 rounded-md">
+                        <div className="text-xs text-muted-foreground">
+                          Você poderá definir localizações específicas (cidades, bairros ou raios) após a criação inicial da campanha.
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  )}
                 </div>
               </div>
             )}
