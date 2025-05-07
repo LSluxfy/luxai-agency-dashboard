@@ -177,7 +177,7 @@ const Metrics = () => {
             
             <TabsContent value="overview" className="space-y-6">
               {/* KPI Summary */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                 <Card>
                   <CardHeader className="pb-2">
                     <CardDescription>Total de Impressões</CardDescription>
@@ -236,12 +236,12 @@ const Metrics = () => {
               </div>
 
               {/* Chart */}
-              <Card>
+              <Card className="mb-6">
                 <CardHeader>
                   <CardTitle>Desempenho da Campanha</CardTitle>
                   <CardDescription>Visão geral dos últimos 7 dias</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="pt-4">
                   <div className="h-[300px]">
                     <ChartContainer
                       config={{
@@ -357,7 +357,7 @@ const Metrics = () => {
                     </ChartContainer>
                   </div>
                   
-                  <div className="overflow-x-auto">
+                  <div className="overflow-x-auto mt-6">
                     <table className="min-w-full divide-y divide-muted">
                       <thead className="bg-muted/30">
                         <tr>
