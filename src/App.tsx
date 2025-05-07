@@ -9,6 +9,7 @@ import Onboarding from "./pages/Onboarding";
 import Dashboard from "./pages/Dashboard";
 import CampaignDetail from "./pages/CampaignDetail";
 import FacebookConnection from "./pages/FacebookConnection";
+import FacebookCallback from "./pages/FacebookCallback";
 import AppLayout from "./components/layouts/AppLayout";
 import NotFound from "./pages/NotFound";
 
@@ -27,6 +28,7 @@ const App = () => (
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/campaign/:id" element={<CampaignDetail />} />
             <Route path="/facebook" element={<FacebookConnection />} />
+            <Route path="/facebook/callback" element={<FacebookCallback />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>

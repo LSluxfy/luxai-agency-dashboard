@@ -26,6 +26,14 @@ type FacebookAccount = {
 
 type UserPlan = "basic" | "professional" | "agency";
 
+// Facebook App configuration
+const FACEBOOK_CONFIG = {
+  clientId: "123456789012345", // Replace with your actual Facebook App ID
+  redirectUri: window.location.origin + "/facebook/callback", // Dynamic redirect based on current domain
+  state: Math.random().toString(36).substring(2, 15), // Random state for security
+  scope: "ads_management,ads_read,pages_show_list,business_management"
+};
+
 const FacebookConnection = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
@@ -66,22 +74,15 @@ const FacebookConnection = () => {
     
     setIsConnecting(true);
     
-    // Simulate OAuth flow
-    setTimeout(() => {
-      const newAccount: FacebookAccount = {
-        id: Math.floor(Math.random() * 1000000000).toString(),
-        name: "Nova Conta Facebook",
-        status: "active",
-        isPrimary: connectedAccounts.length === 0,
-      };
-      
-      setConnectedAccounts([...connectedAccounts, newAccount]);
-      setIsConnecting(false);
-      
-      toast.success("Conta do Facebook conectada com sucesso!", {
-        description: `A conta ${newAccount.name} foi adicionada.`
-      });
-    }, 2000);
+    // Build the Facebook OAuth URL
+    const facebookAuthUrl = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${FACEBOOK_CONFIG.clientId}&redirect_uri=${encodeURIComponent(FACEBOOK_CONFIG.redirectUri)}&state=${FACEBOOK_CONFIG.state}&response_type=code&scope=${FACEBOOK_CONFIG.scope}`;
+    
+    // In a real application, we'd store the state in localStorage or sessionStorage
+    // to verify it when the user returns from Facebook
+    localStorage.setItem('facebookAuthState', FACEBOOK_CONFIG.state);
+    
+    // Redirect the user to Facebook authorization page
+    window.location.href = facebookAuthUrl;
   };
 
   const handleSetPrimary = (accountId: string) => {
