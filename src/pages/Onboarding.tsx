@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Slider } from "@/components/ui/slider";
-import { ArrowLeft, ArrowRight, Upload, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, Upload, Sparkles, Users, TrendingUp, Activity } from "lucide-react";
 import OnboardingStepIndicator from "@/components/ui-custom/OnboardingStepIndicator";
 import Logo from "@/components/ui-custom/Logo";
 import { useToast } from "@/hooks/use-toast";
