@@ -5,11 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Upload, Sparkles, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { v4 as uuidv4 } from "uuid";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import ImageUploader from "./ImageUploader";
 import CreativePreview from "./CreativePreview";
+
+// Função local para gerar IDs únicos (substituindo uuid)
+const uuidv4 = () => Math.random().toString(36).substring(2, 15);
 
 export interface UploadedImage {
   id: string;
