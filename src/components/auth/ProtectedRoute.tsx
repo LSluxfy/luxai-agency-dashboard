@@ -1,6 +1,6 @@
 
 import { ReactNode } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
 
@@ -10,6 +10,7 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const { user, isLoading } = useAuth();
+  const location = useLocation();
   
   if (isLoading) {
     return (
@@ -18,6 +19,11 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
         <p className="text-lg">Carregando...</p>
       </div>
     );
+  }
+  
+  // Allow access to reset-password route even when not logged in
+  if (location.pathname === "/reset-password") {
+    return <>{children}</>;
   }
   
   if (!user) {
