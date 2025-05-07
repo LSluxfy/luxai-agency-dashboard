@@ -3,7 +3,7 @@ import { useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Upload, Sparkles, Loader2 } from "lucide-react";
+import { Upload, Sparkles, Loader2, Download, Lightbulb } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -25,6 +25,7 @@ export interface GeneratedCreative {
   title: string;
   description: string;
   cta: string;
+  strategy?: string;
   createdAt: string;
 }
 
@@ -45,11 +46,6 @@ const CreativeGenerator = () => {
 
   const handleGenerateCreative = useCallback(async () => {
     // Validation checks
-    if (uploadedImages.length === 0) {
-      toast.error("Por favor, faça o upload de pelo menos uma imagem de referência.");
-      return;
-    }
-
     if (!prompt.trim()) {
       toast.error("Por favor, escreva um comando para a IA.");
       return;
@@ -57,30 +53,45 @@ const CreativeGenerator = () => {
 
     // Start generation process
     setIsGenerating(true);
+    toast.info("Gerando criativo com IA, pode levar alguns segundos...");
 
     try {
-      // Simulating AI generation - this would be replaced with actual API call
-      // In a real app, we would send the images and prompt to a backend service
-      setTimeout(() => {
-        const mockCreative: GeneratedCreative = {
-          id: uuidv4(),
-          imageUrl: uploadedImages[0].url, // Just using the first image as a placeholder
-          title: "Título gerado pela IA com base no seu briefing",
-          description: "Descrição gerada pela IA que combina elementos do seu comando com as imagens de referência fornecidas.",
-          cta: "COMPRAR AGORA",
-          createdAt: new Date().toISOString(),
-        };
+      // Call the Supabase Edge Function to generate creative content
+      const { data, error } = await supabase.functions.invoke('generate-creative', {
+        body: {
+          prompt: prompt,
+          referenceImages: uploadedImages.map(img => img.url)
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message || "Erro ao gerar conteúdo com a IA");
+      }
+
+      if (!data) {
+        throw new Error("Não foi possível gerar o conteúdo. Tente novamente.");
+      }
+
+      // Create creative from AI-generated content
+      const mockCreative: GeneratedCreative = {
+        id: uuidv4(),
+        imageUrl: data.imageUrl || (uploadedImages.length > 0 ? uploadedImages[0].url : ""),
+        title: data.headline || "Título gerado pela IA com base no seu briefing",
+        description: data.description || "Descrição gerada pela IA que combina elementos do seu comando",
+        cta: data.cta || "COMPRAR AGORA",
+        strategy: data.strategy || "",
+        createdAt: new Date().toISOString(),
+      };
         
-        setGeneratedCreative(mockCreative);
-        setIsGenerating(false);
-        toast.success("Criativo gerado com sucesso!");
-      }, 2500);
+      setGeneratedCreative(mockCreative);
+      toast.success("Criativo gerado com sucesso!");
     } catch (error) {
       console.error("Error generating creative:", error);
       toast.error("Erro ao gerar criativo. Por favor, tente novamente.");
+    } finally {
       setIsGenerating(false);
     }
-  }, [uploadedImages, prompt]);
+  }, [prompt, uploadedImages, supabase.functions]);
 
   const handleSaveCreative = useCallback(async () => {
     if (!generatedCreative || !user) return;
@@ -120,7 +131,7 @@ const CreativeGenerator = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <span className="inline-flex items-center justify-center bg-primary/10 text-primary p-2 rounded-full">1</span>
-            Envie imagens de referência
+            Envie imagens de referência (opcional)
           </CardTitle>
           <CardDescription>
             Faça upload de até 5 imagens que servirão como referência para a IA.
@@ -154,7 +165,7 @@ const CreativeGenerator = () => {
           />
           <Button 
             onClick={handleGenerateCreative} 
-            disabled={isGenerating || uploadedImages.length === 0 || !prompt.trim()}
+            disabled={isGenerating || !prompt.trim()}
             className="w-full sm:w-auto btn-pulse"
             size="lg"
           >
@@ -174,10 +185,28 @@ const CreativeGenerator = () => {
       </Card>
 
       {generatedCreative && (
-        <CreativePreview 
-          creative={generatedCreative} 
-          onSave={handleSaveCreative}
-        />
+        <>
+          {generatedCreative.strategy && (
+            <Card className="border-primary/20 bg-primary/5">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Lightbulb className="h-5 w-5 text-primary" />
+                  Estratégia de Campanha
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="whitespace-pre-wrap text-sm">
+                  {generatedCreative.strategy}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          <CreativePreview 
+            creative={generatedCreative} 
+            onSave={handleSaveCreative}
+          />
+        </>
       )}
     </div>
   );
