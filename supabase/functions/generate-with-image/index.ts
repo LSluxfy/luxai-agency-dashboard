@@ -51,31 +51,29 @@ serve(async (req) => {
     const imageData = body.image;
     console.log("Image data format check:", imageData.substring(0, 30) + "...")
     
-    // Build request body for Replicate API exactly matching the curl example
+    // Build request body for Replicate API
     const replicateBody = {
       version: "15a3689ee13b0d2616e98820eca31d4c3abcd36672df6afce5cb6feb1d66087d",
       input: {
         image: imageData,
         prompt: body.prompt || "Create a professional, high-quality, enhanced version of this image",
-        num_inference_steps: 25  // Changed from string to number
+        num_inference_steps: 25
       }
     }
 
-    // Call Replicate API to start the generation with the Prefer: wait header
-    console.log("Sending request to Replicate API using model:", replicateBody.version)
+    console.log("Sending request to Replicate API")
     const response = await fetch("https://api.replicate.com/v1/predictions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${REPLICATE_API_TOKEN}`,
         "Content-Type": "application/json",
-        "Prefer": "wait"  // Important: Add this header to wait for the complete result
       },
       body: JSON.stringify(replicateBody),
     })
 
-    // Parse the response - with "Prefer: wait", this should be the complete prediction
+    // Parse the response
     const prediction = await response.json()
-    console.log("Complete prediction response:", prediction)
+    console.log("Initial prediction response:", prediction)
     
     if (prediction.error) {
       console.error("Error from Replicate API:", prediction.error)
@@ -87,27 +85,17 @@ serve(async (req) => {
       )
     }
 
-    // If we have output, return it directly
-    if (prediction.output) {
-      console.log("Generated image URL:", prediction.output)
-      return new Response(
-        JSON.stringify({ 
-          status: "succeeded",
-          output: prediction.output 
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      )
-    } 
-    // If there's no output but no error either, return the prediction for frontend polling
-    else {
-      console.log("Returning prediction for client-side polling:", prediction.id)
-      return new Response(
-        JSON.stringify({ prediction }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      )
-    }
+    // Return the prediction ID for client-side polling
+    return new Response(
+      JSON.stringify({ 
+        prediction: {
+          id: prediction.id,
+          status: prediction.status
+        } 
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    )
   } catch (error) {
     console.error("Error in generate-with-image function:", error)
     return new Response(
