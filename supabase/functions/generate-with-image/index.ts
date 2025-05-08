@@ -1,5 +1,4 @@
 
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
 const corsHeaders = {
@@ -52,33 +51,34 @@ serve(async (req) => {
     const imageData = body.image;
     console.log("Image data format check:", imageData.substring(0, 30) + "...")
     
-    // Using the model version you suggested
-    // Build request body for Replicate API
+    // Build request body for Replicate API exactly matching the curl example
     const replicateBody = {
       version: "15a3689ee13b0d2616e98820eca31d4c3abcd36672df6afce5cb6feb1d66087d",
       input: {
         image: imageData,
         prompt: body.prompt || "Create a professional, high-quality, enhanced version of this image",
-        num_inference_steps: 25
+        num_inference_steps: "25"  // Important: Match the string format from the curl example
       }
     }
 
-    // Call Replicate API to start the generation
+    // Call Replicate API to start the generation with the Prefer: wait header
     console.log("Sending request to Replicate API using model:", replicateBody.version)
     const response = await fetch("https://api.replicate.com/v1/predictions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${REPLICATE_API_TOKEN}`,
         "Content-Type": "application/json",
+        "Prefer": "wait"  // Important: Add this header to wait for the complete result
       },
       body: JSON.stringify(replicateBody),
     })
 
-    // Parse the initial response
-    let prediction = await response.json()
-    console.log("Initial response from Replicate:", prediction)
+    // Parse the response - with "Prefer: wait", this should be the complete prediction
+    const prediction = await response.json()
+    console.log("Complete prediction response:", prediction)
     
     if (prediction.error) {
+      console.error("Error from Replicate API:", prediction.error)
       return new Response(
         JSON.stringify({ error: prediction.error }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -87,32 +87,9 @@ serve(async (req) => {
       )
     }
 
-    // Poll for the result if the prediction is not complete
-    const maxAttempts = 30;
-    let attempts = 0;
-    
-    while (prediction.status !== "succeeded" && prediction.status !== "failed" && attempts < maxAttempts) {
-      console.log(`Polling attempt ${attempts + 1}, status: ${prediction.status}`);
-      
-      // Wait 2 seconds between polling attempts
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Poll for the result
-      const pollResponse = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
-        headers: {
-          Authorization: `Bearer ${REPLICATE_API_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-      });
-      
-      prediction = await pollResponse.json();
-      attempts++;
-    }
-    
-    console.log("Final prediction status:", prediction.status);
-    
-    if (prediction.status === "succeeded") {
-      console.log("Generated image URL:", prediction.output);
+    // If we have output, return it directly
+    if (prediction.output) {
+      console.log("Generated image URL:", prediction.output)
       return new Response(
         JSON.stringify({ 
           status: "succeeded",
@@ -121,15 +98,13 @@ serve(async (req) => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
       )
-    } else {
-      console.error("Image generation failed or timed out:", prediction);
+    } 
+    // If there's no output but no error either, return the prediction for frontend polling
+    else {
+      console.log("Returning prediction for client-side polling:", prediction.id)
       return new Response(
-        JSON.stringify({ 
-          error: "Image generation failed or timed out", 
-          details: prediction 
-        }), {
+        JSON.stringify({ prediction }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 500,
         }
       )
     }
@@ -143,4 +118,3 @@ serve(async (req) => {
     )
   }
 })
-
