@@ -31,7 +31,7 @@ serve(async (req) => {
     const response = await fetch(`https://api.runwayml.com/v1/image-to-video/${id}`, {
       headers: {
         "Authorization": `Bearer ${RUNWAY_API_KEY}`,
-        "X-Runway-Version": "2024-11-06",
+        "X-Runway-API-Version": "2024-11-06",
         "Content-Type": "application/json",
       },
     });

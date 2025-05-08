@@ -28,28 +28,40 @@ serve(async (req) => {
       throw new Error("URL da imagem não fornecida. Por favor, forneça uma URL de imagem válida.");
     }
 
-    // Determine if the image is a data URI or a regular URL
+    // Format the request body according to the updated API spec
     let requestBody;
+    
+    // Determine if the image is a data URI or a regular URL
     if (imageUrl.startsWith("data:image/")) {
-      // It's a data URI, we'll use it directly
+      // It's a data URI, we'll use it directly in the new format
       console.log("Usando Data URI para a geração de vídeo");
       requestBody = JSON.stringify({
-        "promptImage": imageUrl
+        "promptImage": [
+          {
+            "uri": imageUrl,
+            "position": "first"
+          }
+        ]
       });
     } else {
       // It's a regular URL
       console.log("Usando URL de imagem para a geração de vídeo:", imageUrl);
       requestBody = JSON.stringify({
-        "promptImage": imageUrl
+        "promptImage": [
+          {
+            "uri": imageUrl,
+            "position": "first"
+          }
+        ]
       });
     }
 
-    // Make the API call to Runway
+    // Make the API call to Runway with updated headers
     const response = await fetch("https://api.runwayml.com/v1/image-to-video", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${RUNWAY_API_KEY}`,
-        "X-Runway-Version": "2024-11-06",
+        "X-Runway-API-Version": "2024-11-06",
         "Content-Type": "application/json",
       },
       body: requestBody,
