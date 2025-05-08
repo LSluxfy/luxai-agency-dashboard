@@ -32,6 +32,7 @@ serve(async (req) => {
 
     console.log("Iniciando geração de vídeo WAN com imagem e prompt:", prompt);
 
+    // Updated to use a more recent, accessible WAN model version
     const response = await fetch(
       "https://api.replicate.com/v1/predictions",
       {
@@ -42,7 +43,8 @@ serve(async (req) => {
           "Prefer": "wait"
         },
         body: JSON.stringify({
-          version: "47f1fcda37910990d4f14f2bed2511b8307d7b9770f66e45ba5b34fa5886609c",
+          // Using the correct WAN 2 model version that's publicly available
+          version: "c9e2d8c199566a8b87aef9656618d8b89c7968b21d729afc902177825a1097a2",
           input: {
             image: image,
             prompt: prompt || "A person is talking",

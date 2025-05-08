@@ -51,6 +51,11 @@ serve(async (req) => {
     const prediction = await response.json();
     console.log("Status da predição:", prediction.status);
 
+    // Log more details if there's an error
+    if (prediction.error) {
+      console.error("Erro detalhado da predição:", prediction.error);
+    }
+
     return new Response(
       JSON.stringify({
         status: prediction.status,

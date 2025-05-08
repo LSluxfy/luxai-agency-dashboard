@@ -1,15 +1,18 @@
 
 import React from "react";
 import { Progress } from "@/components/ui/progress";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface VideoGenerationProgressProps {
   progress: number;
   predictionId: string | null;
+  error?: string | null;
 }
 
 const VideoGenerationProgress: React.FC<VideoGenerationProgressProps> = ({ 
   progress, 
-  predictionId 
+  predictionId,
+  error
 }) => {
   if (!predictionId || progress === 0) return null;
 
@@ -28,11 +31,19 @@ const VideoGenerationProgress: React.FC<VideoGenerationProgressProps> = ({
         </span>
       </div>
       <Progress value={progress} className="h-2" />
-      <p className="text-xs text-muted-foreground">
-        {progress < 100 
-          ? "Este processo pode levar até 1 minuto. Por favor, aguarde." 
-          : "Você pode visualizar o vídeo abaixo."}
-      </p>
+      {!error ? (
+        <p className="text-xs text-muted-foreground">
+          {progress < 100 
+            ? "Este processo pode levar até 1 minuto. Por favor, aguarde." 
+            : "Você pode visualizar o vídeo abaixo."}
+        </p>
+      ) : (
+        <Alert variant="destructive" className="mt-2">
+          <AlertDescription className="text-xs">
+            {error}
+          </AlertDescription>
+        </Alert>
+      )}
     </div>
   );
 };

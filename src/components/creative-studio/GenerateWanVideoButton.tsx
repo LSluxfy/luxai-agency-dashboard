@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2, Upload, Video } from "lucide-react";
@@ -135,7 +134,11 @@ export function GenerateWanVideoButton() {
         </Alert>
       )}
 
-      <VideoGenerationProgress progress={progress} predictionId={predictionId} />
+      <VideoGenerationProgress 
+        progress={progress} 
+        predictionId={predictionId} 
+        error={error}
+      />
 
       {error && (
         <Alert variant="destructive" className="mt-4">
