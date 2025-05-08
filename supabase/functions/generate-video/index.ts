@@ -30,13 +30,13 @@ serve(async (req) => {
 
     console.log("Usando URL de imagem para a geração de vídeo:", imageUrl.substring(0, 100) + "...");
     
-    // Make the API call to Runway with updated parameters
+    // Make the API call to Runway with the correct API version header
     const response = await fetch("https://api.runwayml.com/v1/image_to_video", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${RUNWAY_API_KEY}`,
         "Content-Type": "application/json",
-        "X-Runway-Version": "2024-11-06"
+        "X-Runway-Version": "2024-11-06" // This is the correct API version
       },
       body: JSON.stringify({
         "promptImage": imageUrl,
