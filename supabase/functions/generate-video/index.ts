@@ -1,7 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
-const REPLICATE_API_TOKEN = Deno.env.get("REPLICATE_API_TOKEN");
+const RUNWAY_API_KEY = Deno.env.get("RUNWAY_API_KEY");
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,78 +16,50 @@ serve(async (req) => {
 
   try {
     // Validate API token
-    if (!REPLICATE_API_TOKEN) {
-      console.error("REPLICATE_API_TOKEN is not set in environment variables");
-      throw new Error("Replicate API token not found in environment variables.");
+    if (!RUNWAY_API_KEY) {
+      console.error("RUNWAY_API_KEY is not set in environment variables");
+      throw new Error("Runway API key not found in environment variables.");
     }
 
-    const { prompt } = await req.json();
-    console.log("Iniciando geração de vídeo com o prompt:", prompt);
+    const { imageUrl } = await req.json();
+    console.log("Iniciando geração de vídeo com a imagem:", imageUrl);
 
-    // Use the minimax/video-01 model as requested
-    const modelVersion = "minimax/video-01";
-    
-    // Make the API call to Replicate
-    const response = await fetch("https://api.replicate.com/v1/predictions", {
+    if (!imageUrl) {
+      throw new Error("URL da imagem não fornecida. Por favor, forneça uma URL de imagem válida.");
+    }
+
+    // Make the API call to Runway
+    const response = await fetch("https://api.runwayml.com/v1/imagem_para_vídeo", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${REPLICATE_API_TOKEN}`,
+        "Authorization": `Bearer ${RUNWAY_API_KEY}`,
+        "X-Runway-Version": "2024-11-06",
         "Content-Type": "application/json",
-        "Prefer": "wait"
       },
       body: JSON.stringify({
-        version: "latest",
-        input: {
-          prompt: prompt || "a woman is walking through a busy Tokyo street at night, she is wearing dark sunglasses"
-        }
+        "promptImage": imageUrl
       }),
     });
 
     // Log the response status for debugging
-    console.log("Replicate API response status:", response.status);
+    console.log("Runway API response status:", response.status);
     
     // Handle non-200 responses
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Erro na resposta da API Replicate:", response.status, errorText);
-      throw new Error(`API Replicate respondeu com status ${response.status}: ${errorText}`);
+      console.error("Erro na resposta da API Runway:", response.status, errorText);
+      throw new Error(`API Runway respondeu com status ${response.status}: ${errorText}`);
     }
 
     const prediction = await response.json();
-    console.log("Resposta da API Replicate (inicio):", prediction);
+    console.log("Resposta da API Runway:", prediction);
 
-    // Return the prediction data for tracking
-    if (prediction.id) {
-      console.log("Geração de vídeo iniciada, ID:", prediction.id);
-      
-      return new Response(
-        JSON.stringify({ 
-          status: prediction.status, 
-          id: prediction.id,
-          message: "Geração de vídeo iniciada"
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-    
-    // If already complete
-    if (prediction.output) {
-      console.log("Vídeo gerado com sucesso:", prediction.output);
-      return new Response(
-        JSON.stringify({ 
-          status: "succeeded",
-          output: prediction.output 
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Handle unexpected response
+    // Return the prediction data
     return new Response(
-      JSON.stringify({ 
-        status: "unknown",
-        message: "Status desconhecido da geração", 
-        prediction 
+      JSON.stringify({
+        status: "success", 
+        id: prediction.id || prediction.requestId,
+        message: "Geração de vídeo iniciada"
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

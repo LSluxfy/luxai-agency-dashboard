@@ -10,7 +10,6 @@ import { GenerateVideoButton } from "@/components/creative-studio/GenerateVideoB
 const CreativeStudio = () => {
   const [activeTab, setActiveTab] = useState<string>("create");
   const [sdxlPrompt, setSdxlPrompt] = useState<string>("Imagem criativa de produto em estilo fotográfico profissional");
-  const [videoPrompt, setVideoPrompt] = useState<string>("Uma cena de produto sendo utilizado em ambiente natural");
   
   const handleTabChange = useCallback((value: string) => {
     setActiveTab(value);
@@ -26,7 +25,7 @@ const CreativeStudio = () => {
         </p>
         <p className="text-muted-foreground mt-1 text-sm">
           <span className="bg-gradient-to-r from-purple-500 to-blue-500 text-white px-2 py-0.5 rounded-sm">Novo!</span>{" "}
-          Modelo Realistic Vision V3 para transformação de imagens ultra-realistas e SDXL para geração direta.
+          Modelo Realistic Vision V3 para transformação de imagens ultra-realistas, SDXL para geração direta e Runway Gen-4 para conversão de imagem em vídeo.
         </p>
         {/* Updated troubleshooting hint */}
         <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-md">
@@ -38,7 +37,7 @@ const CreativeStudio = () => {
             • A geração de imagens pode levar alguns minutos para ser concluída<br/>
             • Se a imagem não for gerada após várias tentativas, tente usar uma imagem diferente ou modificar o prompt<br/>
             • Para o botão Realistic Vision, certifique-se de que a imagem está publicamente acessível<br/>
-            • A geração de vídeo pode levar alguns minutos dependendo da complexidade do prompt
+            • Para gerar vídeo, forneça uma URL de imagem HTTPS pública
           </p>
         </div>
       </header>
@@ -47,7 +46,7 @@ const CreativeStudio = () => {
         <TabsList className="grid w-full grid-cols-4 mb-6">
           <TabsTrigger value="create">Criar Novo</TabsTrigger>
           <TabsTrigger value="sdxl">Gerar com SDXL</TabsTrigger>
-          <TabsTrigger value="video">Gerar Vídeo</TabsTrigger>
+          <TabsTrigger value="video">Imagem para Vídeo</TabsTrigger>
           <TabsTrigger value="gallery">Meus Criativos Salvos</TabsTrigger>
         </TabsList>
         
@@ -82,20 +81,11 @@ const CreativeStudio = () => {
           <Card>
             <CardContent className="pt-6">
               <div className="mb-4">
-                <h2 className="text-xl font-bold mb-3">Gerar Vídeo com IA</h2>
+                <h2 className="text-xl font-bold mb-3">Converter Imagem em Vídeo</h2>
                 <p className="text-muted-foreground mb-4">
-                  Use a tecnologia de IA para gerar vídeos curtos com base em descrições textuais. Ideal para prévia de conceitos.
+                  Use a tecnologia Runway Gen-4 para transformar imagens estáticas em vídeos curtos e dinâmicos.
                 </p>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1">Descrição do vídeo:</label>
-                  <textarea 
-                    className="w-full h-24 p-2 border rounded-md" 
-                    value={videoPrompt}
-                    onChange={(e) => setVideoPrompt(e.target.value)}
-                    placeholder="Descreva o vídeo que você deseja gerar..."
-                  ></textarea>
-                </div>
-                <GenerateVideoButton prompt={videoPrompt} />
+                <GenerateVideoButton />
               </div>
             </CardContent>
           </Card>

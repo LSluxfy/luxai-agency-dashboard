@@ -1,13 +1,15 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Loader2, ExternalLink } from "lucide-react";
+import { Loader2, ExternalLink, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 
-export function GenerateVideoButton({ prompt }: { prompt: string }) {
+export function GenerateVideoButton() {
   const [loading, setLoading] = useState(false);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -15,6 +17,7 @@ export function GenerateVideoButton({ prompt }: { prompt: string }) {
   const [progress, setProgress] = useState<number>(0);
   const [statusCheckInterval, setStatusCheckInterval] = useState<number | null>(null);
   const [checkCount, setCheckCount] = useState<number>(0);
+  const [imageUrl, setImageUrl] = useState<string>("");
 
   // Limpar o intervalo quando o componente é desmontado
   useEffect(() => {
@@ -82,9 +85,6 @@ export function GenerateVideoButton({ prompt }: { prompt: string }) {
           if (output && typeof output === "string") {
             setVideoUrl(output);
             toast.success("Vídeo gerado com sucesso!");
-          } else if (Array.isArray(output) && output.length > 0) {
-            setVideoUrl(output[0]);
-            toast.success("Vídeo gerado com sucesso!");
           } else {
             throw new Error("Formato de output inválido: " + JSON.stringify(output));
           }
@@ -95,7 +95,7 @@ export function GenerateVideoButton({ prompt }: { prompt: string }) {
           setPredictionId(null);
           setLoading(false);
           setProgress(0);
-          const errorMsg = data.error || "Falha na geração do vídeo";
+          const errorMsg = data.message || "Falha na geração do vídeo";
           setError(`Falha na geração: ${errorMsg}`);
           toast.error(`Falha na geração: ${errorMsg}`);
         }
@@ -121,8 +121,8 @@ export function GenerateVideoButton({ prompt }: { prompt: string }) {
   }, [predictionId, checkCount]);
 
   const handleGenerateVideo = async () => {
-    if (!prompt.trim()) {
-      toast.error("Por favor, forneça uma descrição para o vídeo");
+    if (!imageUrl.trim()) {
+      toast.error("Por favor, forneça uma URL de imagem válida");
       return;
     }
 
@@ -135,10 +135,10 @@ export function GenerateVideoButton({ prompt }: { prompt: string }) {
     toast.info("Iniciando geração de vídeo com IA...");
 
     try {
-      console.log("Enviando requisição para gerar vídeo com o prompt:", prompt);
+      console.log("Enviando requisição para gerar vídeo com a imagem:", imageUrl);
       
       const { data, error } = await supabase.functions.invoke("generate-video", {
-        body: { prompt: prompt.trim() }
+        body: { imageUrl: imageUrl.trim() }
       });
       
       if (error) {
@@ -183,9 +183,23 @@ export function GenerateVideoButton({ prompt }: { prompt: string }) {
 
   return (
     <div className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="image-url">URL da Imagem (HTTPS):</Label>
+        <Input
+          id="image-url"
+          value={imageUrl}
+          onChange={(e) => setImageUrl(e.target.value)}
+          placeholder="https://exemplo.com/imagem.jpg"
+          className="w-full"
+        />
+        <p className="text-xs text-muted-foreground">
+          Certifique-se de que a imagem esteja publicamente acessível via HTTPS.
+        </p>
+      </div>
+
       <Button 
         onClick={handleGenerateVideo} 
-        disabled={loading || !prompt.trim()} 
+        disabled={loading || !imageUrl.trim()} 
         className="w-full sm:w-auto"
       >
         {loading ? (
@@ -194,7 +208,10 @@ export function GenerateVideoButton({ prompt }: { prompt: string }) {
             Gerando vídeo...
           </>
         ) : (
-          "Gerar Vídeo com IA"
+          <>
+            <Upload className="mr-2 h-4 w-4" />
+            Converter Imagem em Vídeo
+          </>
         )}
       </Button>
 

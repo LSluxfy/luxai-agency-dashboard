@@ -1,7 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
-const REPLICATE_API_TOKEN = Deno.env.get("REPLICATE_API_TOKEN");
+const RUNWAY_API_KEY = Deno.env.get("RUNWAY_API_KEY");
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,27 +16,28 @@ serve(async (req) => {
 
   try {
     // Validate API token
-    if (!REPLICATE_API_TOKEN) {
-      console.error("REPLICATE_API_TOKEN is not set in environment variables");
-      throw new Error("Replicate API token not found in environment variables.");
+    if (!RUNWAY_API_KEY) {
+      console.error("RUNWAY_API_KEY is not set in environment variables");
+      throw new Error("Runway API key not found in environment variables.");
     }
     
     const { id } = await req.json();
     console.log("Verificando status do vídeo com ID:", id);
 
     if (!id) {
-      throw new Error("ID da previsão não fornecido");
+      throw new Error("ID da geração não fornecido");
     }
 
-    const response = await fetch(`https://api.replicate.com/v1/predictions/${id}`, {
+    const response = await fetch(`https://api.runwayml.com/v1/imagem_para_vídeo/${id}`, {
       headers: {
-        Authorization: `Bearer ${REPLICATE_API_TOKEN}`,
+        "Authorization": `Bearer ${RUNWAY_API_KEY}`,
+        "X-Runway-Version": "2024-11-06",
         "Content-Type": "application/json",
       },
     });
 
     // Log the response status for debugging
-    console.log("Replicate status check response status:", response.status);
+    console.log("Runway status check response status:", response.status);
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -44,14 +45,31 @@ serve(async (req) => {
       throw new Error(`API respondeu com status ${response.status}: ${errorText}`);
     }
 
-    const prediction = await response.json();
-    console.log("Status atual da geração:", prediction.status);
+    const result = await response.json();
+    console.log("Status atual da geração:", result.status);
     
-    // Also log the full prediction object for debugging purposes
-    console.log("Full prediction object:", JSON.stringify(prediction));
+    // Also log the full result object for debugging purposes
+    console.log("Full result object:", JSON.stringify(result));
+    
+    // Map Runway API status to our application status
+    let status = result.status;
+    let output = null;
+    
+    if (result.status === "COMPLETED") {
+      status = "succeeded";
+      output = result.videoUrl || result.video;
+    } else if (result.status === "FAILED") {
+      status = "failed";
+    } else if (result.status === "PROCESSING" || result.status === "QUEUED") {
+      status = "processing";
+    }
 
     return new Response(
-      JSON.stringify(prediction),
+      JSON.stringify({
+        status: status,
+        output: output,
+        rawResponse: result
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
