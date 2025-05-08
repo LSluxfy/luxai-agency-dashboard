@@ -24,6 +24,7 @@ const HeroSection = ({ onStartTrial, onWatchDemo }: HeroSectionProps) => {
         </div>
       </div>
       
+      {/* Main content */}
       <div className="container mx-auto px-4 py-20 z-20">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div className="flex flex-col space-y-6">
