@@ -13,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    const REPLICATE_API_KEY = "r8_V08QXsg76UIDCDc9NpKoRDtGhHIzgHg18lvUe"
+    const REPLICATE_API_TOKEN = "r8_D9h5KighG1MjcYbcDKlxc6jxJO0cABt4eJzaE"
     const body = await req.json()
 
     // If it's a status check request
@@ -21,7 +21,7 @@ serve(async (req) => {
       console.log("Checking status for prediction:", body.predictionId)
       const response = await fetch(`https://api.replicate.com/v1/predictions/${body.predictionId}`, {
         headers: {
-          Authorization: `Token ${REPLICATE_API_KEY}`,
+          Authorization: `Bearer ${REPLICATE_API_TOKEN}`,
           "Content-Type": "application/json",
         },
       })
@@ -51,7 +51,7 @@ serve(async (req) => {
       version: "15a3689ee13b0d2616e98820eca31d4c3abcd36672df6afce5cb6feb1d66087d",
       input: {
         image: body.image,
-        num_inference_steps: "25"
+        num_inference_steps: 25
       }
     }
 
@@ -59,7 +59,7 @@ serve(async (req) => {
     const response = await fetch("https://api.replicate.com/v1/predictions", {
       method: "POST",
       headers: {
-        Authorization: `Token ${REPLICATE_API_KEY}`,
+        Authorization: `Bearer ${REPLICATE_API_TOKEN}`,
         "Content-Type": "application/json",
         "Prefer": "wait"
       },

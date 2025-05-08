@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -287,7 +286,6 @@ const CreativeGenerator = () => {
     }
   }, [prompt, uploadedImages, supabase.functions]);
 
-  // New function for generating creatives from image using AI
   const generateCreativeFromImageAI = useCallback(async () => {
     // Validation checks
     if (uploadedImages.length === 0) {
