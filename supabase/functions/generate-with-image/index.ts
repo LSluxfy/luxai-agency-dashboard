@@ -51,15 +51,14 @@ serve(async (req) => {
     const imageData = body.image;
     console.log("Image data format check:", imageData.substring(0, 30) + "...")
     
-    // Use a different model that's publicly available for image-to-image generation
+    // Using the model version you suggested
     // Build request body for Replicate API
     const replicateBody = {
-      version: "565a2caa080cd9e2c2fb89062ac8e22a276a4a502af8a5a1fe722b9f94feb67b", // stable-diffusion-img2img model
+      version: "15a3689ee13b0d2616e98820eca31d4c3abcd36672df6afce5cb6feb1d66087d",
       input: {
         image: imageData,
         prompt: body.prompt || "Create a professional, high-quality, enhanced version of this image",
-        num_inference_steps: 30,
-        guidance_scale: 7.5
+        num_inference_steps: 25
       }
     }
 
@@ -70,6 +69,7 @@ serve(async (req) => {
       headers: {
         Authorization: `Bearer ${REPLICATE_API_TOKEN}`,
         "Content-Type": "application/json",
+        "Prefer": "wait"  // Important: Add this header to wait for the result
       },
       body: JSON.stringify(replicateBody),
     })
