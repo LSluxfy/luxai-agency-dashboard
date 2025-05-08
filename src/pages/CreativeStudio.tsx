@@ -2,7 +2,6 @@
 import { useState, useCallback } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import CreativeGenerator from "@/components/creative-studio/CreativeGenerator";
 import CreativeGallery from "@/components/creative-studio/CreativeGallery";
 import { GenerateImageButton } from "@/components/creative-studio/GenerateImageButton";
@@ -35,7 +34,8 @@ const CreativeStudio = () => {
             • O parâmetro "strength" define quanto da imagem original será mantida (0.21 = preserva mais detalhes)<br/>
             • O prompt deve descrever claramente o resultado desejado<br/>
             • A geração de imagens pode levar alguns minutos para ser concluída<br/>
-            • Se a imagem não for gerada após várias tentativas, tente usar uma imagem diferente ou modificar o prompt
+            • Se a imagem não for gerada após várias tentativas, tente usar uma imagem diferente ou modificar o prompt<br/>
+            • Para o botão Realistic Vision, certifique-se de que a imagem está publicamente acessível
           </p>
         </div>
       </header>

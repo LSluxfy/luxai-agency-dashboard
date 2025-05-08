@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Sparkles, Loader2, Lightbulb, Save, ImageIcon, Check, AlertTriangle, Image, Wand2 } from "lucide-react";
+import { Sparkles, Loader2, Lightbulb, Save, Wand2, Check } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -35,8 +35,6 @@ const CreativeGenerator = () => {
   const [savedImages, setSavedImages] = useState<any[]>([]);
   const [prompt, setPrompt] = useState<string>("");
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
-  const [isGeneratingWithImage, setIsGeneratingWithImage] = useState<boolean>(false);
-  const [isGeneratingFromImageAI, setIsGeneratingFromImageAI] = useState<boolean>(false);
   const [isGeneratingRealistic, setIsGeneratingRealistic] = useState<boolean>(false);
   const [generatedCreative, setGeneratedCreative] = useState<GeneratedCreative | null>(null);
   const [replicatePredictionId, setReplicatePredictionId] = useState<string | null>(null);
@@ -87,8 +85,6 @@ const CreativeGenerator = () => {
           clearInterval(interval);
           setPollingInterval(null);
           setReplicatePredictionId(null);
-          setIsGeneratingWithImage(false);
-          setIsGeneratingFromImageAI(false);
           setIsGeneratingRealistic(false);
           setGenerationProgress(0);
           setPollingCount(0);
@@ -129,8 +125,6 @@ const CreativeGenerator = () => {
             };
               
             setGeneratedCreative(mockCreative);
-            setIsGeneratingWithImage(false);
-            setIsGeneratingFromImageAI(false);
             setIsGeneratingRealistic(false);
             setCurrentModel(null);
             toast.success(`Criativo gerado com sucesso${currentModel === "realistic-vision" ? " (Realistic Vision)" : ""}!`);
@@ -139,8 +133,6 @@ const CreativeGenerator = () => {
             await saveGeneratedImageToSupabase(imageUrl);
           } else {
             toast.error("A API retornou sucesso, mas nenhuma imagem foi gerada");
-            setIsGeneratingWithImage(false);
-            setIsGeneratingFromImageAI(false);
             setIsGeneratingRealistic(false);
             setCurrentModel(null);
             setGenerationProgress(0);
@@ -152,8 +144,6 @@ const CreativeGenerator = () => {
           setPollingInterval(null);
           setReplicatePredictionId(null);
           setPollingCount(0);
-          setIsGeneratingWithImage(false);
-          setIsGeneratingFromImageAI(false);
           setIsGeneratingRealistic(false);
           setCurrentModel(null);
           setGenerationProgress(0);
@@ -180,8 +170,6 @@ const CreativeGenerator = () => {
         setPollingInterval(null);
         setReplicatePredictionId(null);
         setPollingCount(0);
-        setIsGeneratingWithImage(false);
-        setIsGeneratingFromImageAI(false);
         setIsGeneratingRealistic(false);
         setCurrentModel(null);
         setGenerationProgress(0);
@@ -283,161 +271,36 @@ const CreativeGenerator = () => {
     }
   }, [prompt, uploadedImages, supabase.functions]);
 
-  // Updated to handle image data properly
-  const generateCreativeWithImage = useCallback(async () => {
-    // Validation checks
-    if (!prompt.trim()) {
-      toast.error("Por favor, escreva um comando para a IA.");
-      return;
-    }
-
-    if (uploadedImages.length === 0) {
-      toast.error("Por favor, faça upload de pelo menos uma imagem de referência.");
-      return;
-    }
-
-    // Start generation process
-    setIsGeneratingWithImage(true);
-    setGenerationProgress(10);
-    setPollingCount(0);
-    toast.info("Gerando criativo com imagem e IA, pode levar alguns minutos...");
-
+  // Function to check if a URL is public/accessible
+  const checkImageAccessibility = async (imageUrl: string): Promise<boolean> => {
     try {
-      // First convert the image to a data URI
-      const imageUrl = uploadedImages[0].url;
-      let imageData;
-      
-      // If it's already a data URI, use it directly
+      // Skip check for data URIs as they're already accessible
       if (imageUrl.startsWith('data:')) {
-        imageData = imageUrl;
-      }
-      // If it's a blob URL (from local file upload), we need to convert it
-      else if (imageUrl.startsWith('blob:')) {
-        // Fetch the image as a blob
-        const response = await fetch(imageUrl);
-        const blob = await response.blob();
-        
-        // Convert to base64
-        imageData = await new Promise((resolve) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result);
-          reader.readAsDataURL(blob);
-        });
-      }
-      // Otherwise assume it's a regular URL
-      else {
-        imageData = imageUrl;
+        return true;
       }
       
-      console.log("Sending image to Replicate with prompt:", prompt);
-
-      // Call the Supabase Edge Function to generate with Replicate
-      const { data, error } = await supabase.functions.invoke('generate-with-image', {
-        body: {
-          image: imageData,
-          prompt: prompt
-        }
-      });
-
-      if (error) {
-        throw new Error(error.message || "Erro ao iniciar geração com a IA");
-      }
-
-      if (!data || !data.prediction || !data.prediction.id) {
-        throw new Error("Não foi possível iniciar a geração. Tente novamente.");
-      }
-
-      // Store the prediction ID for polling
-      console.log("Generation started successfully, prediction ID:", data.prediction.id);
-      setReplicatePredictionId(data.prediction.id);
-      setGenerationProgress(20);
-      toast.info("Imagem sendo gerada, por favor aguarde...");
-      
+      const response = await fetch(imageUrl, { method: 'HEAD' });
+      return response.ok;
     } catch (error) {
-      console.error("Error starting image generation:", error);
-      toast.error("Erro ao gerar imagem. Por favor, tente novamente.");
-      setIsGeneratingWithImage(false);
-      setGenerationProgress(0);
+      console.error("Error checking image accessibility:", error);
+      return false;
     }
-  }, [prompt, uploadedImages, supabase.functions]);
-
-  // Updated to handle image data properly
-  const generateCreativeFromImageAI = useCallback(async () => {
-    // Validation checks
-    if (uploadedImages.length === 0) {
-      toast.error("Por favor, faça upload de pelo menos uma imagem.");
-      return;
-    }
-
-    // Start generation process
-    setIsGeneratingFromImageAI(true);
-    setGenerationProgress(10);
-    setPollingCount(0);
-    toast.info("Processando sua imagem com IA, pode levar alguns minutos...");
-
-    try {
-      // First convert the image to a data URI
-      const imageUrl = uploadedImages[0].url;
-      let imageData;
-      
-      // If it's already a data URI, use it directly
-      if (imageUrl.startsWith('data:')) {
-        imageData = imageUrl;
-      }
-      // If it's a blob URL (from local file upload), we need to convert it
-      else if (imageUrl.startsWith('blob:')) {
-        // Fetch the image as a blob
-        const response = await fetch(imageUrl);
-        const blob = await response.blob();
-        
-        // Convert to base64
-        imageData = await new Promise((resolve) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result);
-          reader.readAsDataURL(blob);
-        });
-      }
-      // Otherwise assume it's a regular URL
-      else {
-        imageData = imageUrl;
-      }
-      
-      console.log("Sending image to Replicate for enhancement");
-
-      // Call the Supabase Edge Function to generate with Replicate
-      const { data, error } = await supabase.functions.invoke('generate-with-image', {
-        body: {
-          image: imageData
-        }
-      });
-
-      if (error) {
-        throw new Error(error.message || "Erro ao iniciar processamento com a IA");
-      }
-
-      if (!data || !data.prediction || !data.prediction.id) {
-        throw new Error("Não foi possível iniciar o processamento. Tente novamente.");
-      }
-
-      // Store the prediction ID for polling
-      console.log("Processing started successfully, prediction ID:", data.prediction.id);
-      setReplicatePredictionId(data.prediction.id);
-      setGenerationProgress(20);
-      toast.info("Imagem sendo processada, por favor aguarde...");
-      
-    } catch (error) {
-      console.error("Error starting image processing:", error);
-      toast.error("Erro ao processar imagem. Por favor, tente novamente.");
-      setIsGeneratingFromImageAI(false);
-      setGenerationProgress(0);
-    }
-  }, [uploadedImages, supabase.functions]);
+  };
   
   // New function to generate with Realistic Vision model
   const generateWithRealisticVision = useCallback(async () => {
     // Validation checks
     if (uploadedImages.length === 0) {
       toast.error("Por favor, faça upload de pelo menos uma imagem.");
+      return;
+    }
+
+    // Check if the image is accessible/public
+    const imageUrl = uploadedImages[0].url;
+    const isAccessible = await checkImageAccessibility(imageUrl);
+    
+    if (!isAccessible && !imageUrl.startsWith('blob:') && !imageUrl.startsWith('data:')) {
+      toast.error("A imagem selecionada não está acessível publicamente. Por favor, use uma imagem pública ou faça upload de uma nova imagem.");
       return;
     }
 
@@ -450,7 +313,6 @@ const CreativeGenerator = () => {
 
     try {
       // First convert the image to a data URI
-      const imageUrl = uploadedImages[0].url;
       let imageData;
       
       // If it's already a data URI, use it directly
@@ -623,7 +485,7 @@ const CreativeGenerator = () => {
           <div className="flex flex-wrap gap-3">
             <Button 
               onClick={handleGenerateCreative} 
-              disabled={isGenerating || isGeneratingWithImage || isGeneratingFromImageAI || isGeneratingRealistic || !prompt.trim()}
+              disabled={isGenerating || isGeneratingRealistic || !prompt.trim()}
               className="w-full sm:w-auto btn-pulse"
               size="lg"
             >
@@ -640,50 +502,10 @@ const CreativeGenerator = () => {
               )}
             </Button>
             
-            <Button 
-              onClick={generateCreativeWithImage} 
-              disabled={isGenerating || isGeneratingWithImage || isGeneratingFromImageAI || isGeneratingRealistic || !prompt.trim() || uploadedImages.length === 0}
-              className="w-full sm:w-auto"
-              size="lg"
-              variant="secondary"
-            >
-              {isGeneratingWithImage ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Gerando com Imagem...
-                </>
-              ) : (
-                <>
-                  <ImageIcon className="mr-2 h-5 w-5" />
-                  Gerar com Imagem de Referência
-                </>
-              )}
-            </Button>
-            
-            <Button 
-              onClick={generateCreativeFromImageAI} 
-              disabled={isGenerating || isGeneratingWithImage || isGeneratingFromImageAI || isGeneratingRealistic || uploadedImages.length === 0}
-              className="w-full sm:w-auto"
-              size="lg"
-              variant="outline"
-            >
-              {isGeneratingFromImageAI ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Processando Imagem...
-                </>
-              ) : (
-                <>
-                  <Image className="mr-2 h-5 w-5" />
-                  Melhorar Imagem com IA
-                </>
-              )}
-            </Button>
-            
-            {/* New button for Realistic Vision model */}
+            {/* Only kept the Realistic Vision button */}
             <Button 
               onClick={generateWithRealisticVision} 
-              disabled={isGenerating || isGeneratingWithImage || isGeneratingFromImageAI || isGeneratingRealistic || uploadedImages.length === 0}
+              disabled={isGenerating || isGeneratingRealistic || uploadedImages.length === 0}
               className="w-full sm:w-auto"
               size="lg"
               variant="outline"
@@ -706,16 +528,12 @@ const CreativeGenerator = () => {
             </Button>
           </div>
           
-          {(isGeneratingWithImage || isGeneratingFromImageAI || isGeneratingRealistic) && replicatePredictionId && (
+          {isGeneratingRealistic && replicatePredictionId && (
             <div className="mt-4 p-3 bg-secondary/20 rounded-md flex flex-col gap-2">
               <div className="flex items-center gap-2">
                 <Loader2 className="h-4 w-4 animate-spin text-primary" />
                 <span className="text-sm">
-                  {isGeneratingRealistic
-                    ? `Criando imagem realista com IA... Isso pode levar alguns minutos. (${pollingCount}/60)`
-                    : isGeneratingWithImage 
-                      ? `Processando imagem com IA... Isso pode levar alguns minutos. (${pollingCount}/60)`
-                      : `Transformando sua imagem com IA... Isso pode levar alguns minutos. (${pollingCount}/60)`}
+                  Criando imagem realista com IA... Isso pode levar alguns minutos. ({pollingCount}/60)
                 </span>
               </div>
               <Progress value={generationProgress} className="h-2" />
