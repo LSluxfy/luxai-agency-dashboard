@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Logo from "../ui-custom/Logo";
@@ -13,6 +13,7 @@ interface HeaderProps {
 
 const Header = ({ scrollPosition, onNavClick }: HeaderProps) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const navigate = useNavigate();
 
   const navItems = [
     { label: "Sobre", sectionId: "about" },
@@ -51,6 +52,14 @@ const Header = ({ scrollPosition, onNavClick }: HeaderProps) => {
     }
   }, [scrollPosition]);
 
+  const handleLoginClick = () => {
+    navigate("/login");
+  };
+
+  const handleTrialClick = () => {
+    navigate("/onboarding");
+  };
+
   return (
     <header
       className={cn(
@@ -61,9 +70,9 @@ const Header = ({ scrollPosition, onNavClick }: HeaderProps) => {
       )}
     >
       <div className="container mx-auto flex items-center justify-between">
-        <Link to="/" className="flex items-center">
+        <div onClick={() => navigate("/")} className="flex items-center cursor-pointer">
           <Logo variant="default" />
-        </Link>
+        </div>
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center space-x-8">
@@ -80,12 +89,12 @@ const Header = ({ scrollPosition, onNavClick }: HeaderProps) => {
 
         {/* Desktop Action Buttons */}
         <div className="hidden md:flex items-center space-x-3">
-          <Link to="/login">
-            <Button variant="ghost">Login</Button>
-          </Link>
-          <Link to="/onboarding">
-            <Button variant="default">Testar Grátis</Button>
-          </Link>
+          <Button variant="ghost" onClick={handleLoginClick}>
+            Login
+          </Button>
+          <Button variant="default" onClick={handleTrialClick}>
+            Testar Grátis
+          </Button>
         </div>
 
         {/* Mobile Menu Button */}
@@ -121,14 +130,12 @@ const Header = ({ scrollPosition, onNavClick }: HeaderProps) => {
           </nav>
 
           <div className="flex flex-col space-y-4 mt-auto">
-            <Link to="/login" className="w-full">
-              <Button variant="outline" className="w-full">
-                Login
-              </Button>
-            </Link>
-            <Link to="/onboarding" className="w-full">
-              <Button className="w-full">Testar Grátis</Button>
-            </Link>
+            <Button variant="outline" className="w-full" onClick={handleLoginClick}>
+              Login
+            </Button>
+            <Button className="w-full" onClick={handleTrialClick}>
+              Testar Grátis
+            </Button>
           </div>
         </div>
       </div>
