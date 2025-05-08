@@ -5,10 +5,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import CreativeGenerator from "@/components/creative-studio/CreativeGenerator";
 import CreativeGallery from "@/components/creative-studio/CreativeGallery";
 import { GenerateImageButton } from "@/components/creative-studio/GenerateImageButton";
+import { GenerateVideoButton } from "@/components/creative-studio/GenerateVideoButton";
 
 const CreativeStudio = () => {
   const [activeTab, setActiveTab] = useState<string>("create");
   const [sdxlPrompt, setSdxlPrompt] = useState<string>("Imagem criativa de produto em estilo fotográfico profissional");
+  const [videoPrompt, setVideoPrompt] = useState<string>("Uma cena de produto sendo utilizado em ambiente natural");
   
   const handleTabChange = useCallback((value: string) => {
     setActiveTab(value);
@@ -35,15 +37,17 @@ const CreativeStudio = () => {
             • O prompt deve descrever claramente o resultado desejado<br/>
             • A geração de imagens pode levar alguns minutos para ser concluída<br/>
             • Se a imagem não for gerada após várias tentativas, tente usar uma imagem diferente ou modificar o prompt<br/>
-            • Para o botão Realistic Vision, certifique-se de que a imagem está publicamente acessível
+            • Para o botão Realistic Vision, certifique-se de que a imagem está publicamente acessível<br/>
+            • A geração de vídeo pode levar alguns minutos dependendo da complexidade do prompt
           </p>
         </div>
       </header>
       
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 mb-6">
+        <TabsList className="grid w-full grid-cols-4 mb-6">
           <TabsTrigger value="create">Criar Novo</TabsTrigger>
           <TabsTrigger value="sdxl">Gerar com SDXL</TabsTrigger>
+          <TabsTrigger value="video">Gerar Vídeo</TabsTrigger>
           <TabsTrigger value="gallery">Meus Criativos Salvos</TabsTrigger>
         </TabsList>
         
@@ -69,6 +73,29 @@ const CreativeStudio = () => {
                   ></textarea>
                 </div>
                 <GenerateImageButton prompt={sdxlPrompt} />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="video" className="mt-0">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="mb-4">
+                <h2 className="text-xl font-bold mb-3">Gerar Vídeo com IA</h2>
+                <p className="text-muted-foreground mb-4">
+                  Use a tecnologia de IA para gerar vídeos curtos com base em descrições textuais. Ideal para prévia de conceitos.
+                </p>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium mb-1">Descrição do vídeo:</label>
+                  <textarea 
+                    className="w-full h-24 p-2 border rounded-md" 
+                    value={videoPrompt}
+                    onChange={(e) => setVideoPrompt(e.target.value)}
+                    placeholder="Descreva o vídeo que você deseja gerar..."
+                  ></textarea>
+                </div>
+                <GenerateVideoButton prompt={videoPrompt} />
               </div>
             </CardContent>
           </Card>
