@@ -6,6 +6,7 @@ import CreativeGenerator from "@/components/creative-studio/CreativeGenerator";
 import CreativeGallery from "@/components/creative-studio/CreativeGallery";
 import { GenerateImageButton } from "@/components/creative-studio/GenerateImageButton";
 import { GenerateVideoButton } from "@/components/creative-studio/GenerateVideoButton";
+import { GenerateWanVideoButton } from "@/components/creative-studio/GenerateWanVideoButton";
 
 const CreativeStudio = () => {
   const [activeTab, setActiveTab] = useState<string>("create");
@@ -25,7 +26,7 @@ const CreativeStudio = () => {
         </p>
         <p className="text-muted-foreground mt-1 text-sm">
           <span className="bg-gradient-to-r from-purple-500 to-blue-500 text-white px-2 py-0.5 rounded-sm">Novo!</span>{" "}
-          Modelo Realistic Vision V3 para transformação de imagens ultra-realistas, SDXL para geração direta e Runway Gen-4 para conversão de imagem em vídeo.
+          Modelo Realistic Vision V3 para transformação de imagens ultra-realistas, SDXL para geração direta e múltiplos geradores de vídeo.
         </p>
         {/* Updated troubleshooting hint */}
         <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-md">
@@ -43,10 +44,11 @@ const CreativeStudio = () => {
       </header>
       
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 mb-6">
+        <TabsList className="grid w-full grid-cols-5 mb-6">
           <TabsTrigger value="create">Criar Novo</TabsTrigger>
           <TabsTrigger value="sdxl">Gerar com SDXL</TabsTrigger>
           <TabsTrigger value="video">Imagem para Vídeo</TabsTrigger>
+          <TabsTrigger value="wan-video">Vídeo com WAN 2.1</TabsTrigger>
           <TabsTrigger value="gallery">Meus Criativos Salvos</TabsTrigger>
         </TabsList>
         
@@ -86,6 +88,20 @@ const CreativeStudio = () => {
                   Use a tecnologia Runway Gen-4 para transformar imagens estáticas em vídeos curtos e dinâmicos.
                 </p>
                 <GenerateVideoButton />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="wan-video" className="mt-0">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="mb-4">
+                <h2 className="text-xl font-bold mb-3">Vídeo com WAN 2.1</h2>
+                <p className="text-muted-foreground mb-4">
+                  Use o modelo WAN 2.1 da WavesSpeedAI para criar vídeos realistas com movimentos naturais a partir de imagens estáticas.
+                </p>
+                <GenerateWanVideoButton />
               </div>
             </CardContent>
           </Card>

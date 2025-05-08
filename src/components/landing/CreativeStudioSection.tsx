@@ -24,11 +24,11 @@ const CreativeStudioSection = () => {
     },
     {
       icon: Video,
-      text: "Crie vídeos realistas e cativantes a partir de texto ou imagens."
+      text: "Crie vídeos realistas com Runway Gen-4 e WAN 2.1, transformando imagens em movimento."
     },
     {
       icon: Image,
-      text: "Use IA de ponta como Runway Gen-4 e Replicate SDXL, integradas ao seu painel."
+      text: "Use IA de ponta como Runway, WAN 2.1 e Replicate SDXL, integradas ao seu painel."
     },
     {
       icon: Rocket,
