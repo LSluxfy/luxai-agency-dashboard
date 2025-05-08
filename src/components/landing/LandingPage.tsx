@@ -37,7 +37,7 @@ const LandingPage = () => {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
+    <div className="flex flex-col min-h-screen">
       <Header scrollPosition={scrollPosition} onNavClick={scrollToSection} />
       
       <main className="flex-1">

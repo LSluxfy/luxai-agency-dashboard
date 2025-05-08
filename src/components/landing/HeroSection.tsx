@@ -1,7 +1,7 @@
 
 import { ArrowRight, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import ParticlesBackground from "../ui-custom/ParticleBackground";
+import { Boxes } from "@/components/ui/background-boxes";
 
 interface HeroSectionProps {
   onStartTrial: () => void;
@@ -14,9 +14,17 @@ const HeroSection = ({ onStartTrial, onWatchDemo }: HeroSectionProps) => {
       id="about"
       className="relative min-h-[90vh] flex items-center overflow-hidden pt-20"
     >
-      <ParticlesBackground />
+      <div className="absolute inset-0 bg-background/80 z-10" />
       
-      <div className="container mx-auto px-4 py-20 z-10">
+      {/* Boxes Background */}
+      <div className="absolute inset-0 z-0 bg-slate-900 w-full h-full">
+        <div className="absolute inset-0 z-0 bg-slate-900 w-full h-full">
+          <div className="absolute inset-0 w-full h-full bg-slate-900 [mask-image:radial-gradient(transparent,white)]" />
+          <Boxes />
+        </div>
+      </div>
+      
+      <div className="container mx-auto px-4 py-20 z-20">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div className="flex flex-col space-y-6">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
@@ -56,13 +64,15 @@ const HeroSection = ({ onStartTrial, onWatchDemo }: HeroSectionProps) => {
           <div className="flex justify-center">
             <div className="relative">
               <div className="absolute inset-0 bg-primary/30 blur-3xl rounded-full transform -translate-y-10 scale-75 animate-pulse"></div>
-              <div className="relative border-4 border-primary/20 bg-card/80 backdrop-blur-sm p-2 rounded-xl shadow-2xl w-full max-w-lg aspect-video flex items-center justify-center">
-                <div className="w-full h-full rounded-lg overflow-hidden bg-black/20 flex items-center justify-center">
-                  <img 
-                    src="https://placehold.co/600x400/1A73E8/FFFFFF/png?text=IA+Automação+Demo" 
-                    alt="Demonstração LuxAI"
-                    className="w-full h-auto object-cover"
-                  />
+              <div className="relative border-4 border-primary/20 bg-card/80 backdrop-blur-sm p-8 rounded-xl shadow-2xl w-full max-w-lg">
+                <h3 className="text-2xl font-bold text-center mb-4">Marketing Automatizado</h3>
+                <p className="text-center text-lg mb-4">
+                  Nossa IA cria, otimiza e gerencia suas campanhas de forma automatizada para maximizar seus resultados.
+                </p>
+                <div className="flex justify-center">
+                  <Button onClick={onStartTrial} className="w-full max-w-xs">
+                    Experimente agora
+                  </Button>
                 </div>
               </div>
             </div>
