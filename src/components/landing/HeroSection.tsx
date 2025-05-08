@@ -17,9 +17,9 @@ const HeroSection = ({ onStartTrial, onWatchDemo }: HeroSectionProps) => {
       <div className="absolute inset-0 bg-background/80 z-10" />
       
       {/* Boxes Background */}
-      <div className="absolute inset-0 z-0 bg-slate-900 w-full h-full">
-        <div className="absolute inset-0 z-0 bg-slate-900 w-full h-full">
-          <div className="absolute inset-0 w-full h-full bg-slate-900 [mask-image:radial-gradient(transparent,white)]" />
+      <div className="absolute inset-0 z-0 bg-blue-900 w-full h-full">
+        <div className="absolute inset-0 z-0 bg-blue-900 w-full h-full">
+          <div className="absolute inset-0 w-full h-full bg-blue-900 [mask-image:radial-gradient(transparent,white)]" />
           <Boxes />
         </div>
       </div>
