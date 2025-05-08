@@ -1,4 +1,5 @@
 
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
 const corsHeaders = {
@@ -69,14 +70,14 @@ serve(async (req) => {
       headers: {
         Authorization: `Bearer ${REPLICATE_API_TOKEN}`,
         "Content-Type": "application/json",
-        "Prefer": "wait"  // Important: Add this header to wait for the result
       },
       body: JSON.stringify(replicateBody),
     })
 
-    const prediction = await response.json()
-    console.log("Generation started response:", prediction)
-
+    // Parse the initial response
+    let prediction = await response.json()
+    console.log("Initial response from Replicate:", prediction)
+    
     if (prediction.error) {
       return new Response(
         JSON.stringify({ error: prediction.error }), {
@@ -86,11 +87,52 @@ serve(async (req) => {
       )
     }
 
-    return new Response(
-      JSON.stringify({ prediction }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    )
+    // Poll for the result if the prediction is not complete
+    const maxAttempts = 30;
+    let attempts = 0;
+    
+    while (prediction.status !== "succeeded" && prediction.status !== "failed" && attempts < maxAttempts) {
+      console.log(`Polling attempt ${attempts + 1}, status: ${prediction.status}`);
+      
+      // Wait 2 seconds between polling attempts
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Poll for the result
+      const pollResponse = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
+        headers: {
+          Authorization: `Bearer ${REPLICATE_API_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+      });
+      
+      prediction = await pollResponse.json();
+      attempts++;
+    }
+    
+    console.log("Final prediction status:", prediction.status);
+    
+    if (prediction.status === "succeeded") {
+      console.log("Generated image URL:", prediction.output);
+      return new Response(
+        JSON.stringify({ 
+          status: "succeeded",
+          output: prediction.output 
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      )
+    } else {
+      console.error("Image generation failed or timed out:", prediction);
+      return new Response(
+        JSON.stringify({ 
+          error: "Image generation failed or timed out", 
+          details: prediction 
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500,
+        }
+      )
+    }
   } catch (error) {
     console.error("Error in generate-with-image function:", error)
     return new Response(
@@ -101,3 +143,4 @@ serve(async (req) => {
     )
   }
 })
+
