@@ -5,6 +5,7 @@ import { Loader2, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Progress } from "@/components/ui/progress";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 export function GenerateVideoButton({ prompt }: { prompt: string }) {
   const [loading, setLoading] = useState(false);
@@ -28,7 +29,7 @@ export function GenerateVideoButton({ prompt }: { prompt: string }) {
   useEffect(() => {
     if (!predictionId) return;
     
-    const maxChecks = 40; // Cerca de 2 minutos (3s * 40)
+    const maxChecks = 60; // Aumentado para cerca de 3 minutos (3s * 60)
     
     // Iniciar a verificação a cada 3 segundos
     const interval = window.setInterval(async () => {
@@ -47,6 +48,8 @@ export function GenerateVideoButton({ prompt }: { prompt: string }) {
           setError("Tempo limite excedido para gerar o vídeo.");
           toast.error("Tempo limite excedido. Por favor, tente novamente.");
           setPredictionId(null);
+          setLoading(false);
+          setProgress(0);
         }
         
         return newCount;
@@ -60,7 +63,10 @@ export function GenerateVideoButton({ prompt }: { prompt: string }) {
           body: { id: predictionId }
         });
         
-        if (error) throw error;
+        if (error) {
+          console.error("Erro ao verificar status:", error);
+          throw new Error(error.message || "Erro ao verificar status");
+        }
         
         console.log("Resposta da verificação de status:", data);
         
@@ -89,17 +95,20 @@ export function GenerateVideoButton({ prompt }: { prompt: string }) {
           setPredictionId(null);
           setLoading(false);
           setProgress(0);
-          throw new Error(`Falha na geração: ${data.error || "Erro desconhecido"}`);
+          const errorMsg = data.error || "Falha na geração do vídeo";
+          setError(`Falha na geração: ${errorMsg}`);
+          toast.error(`Falha na geração: ${errorMsg}`);
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error("Erro ao verificar o status:", err);
-        // Continuamos verificando mesmo se houver erro, a menos que seja o erro final
-        if (checkCount >= maxChecks) {
+        // Apenas mostramos o erro se for a última tentativa ou se for um erro crítico
+        if (checkCount >= maxChecks - 1) {
           clearInterval(interval);
           setStatusCheckInterval(null);
           setPredictionId(null);
           setLoading(false);
-          setError("Erro ao verificar o status da geração do vídeo.");
+          setProgress(0);
+          setError("Erro ao verificar o status da geração do vídeo: " + err.message);
           toast.error("Erro ao verificar o status. Por favor, tente novamente.");
         }
       }
@@ -109,24 +118,33 @@ export function GenerateVideoButton({ prompt }: { prompt: string }) {
     
     // Limpar o intervalo quando o componente é desmontado
     return () => clearInterval(interval);
-  }, [predictionId]);
+  }, [predictionId, checkCount]);
 
   const handleGenerateVideo = async () => {
+    if (!prompt.trim()) {
+      toast.error("Por favor, forneça uma descrição para o vídeo");
+      return;
+    }
+
     setLoading(true);
     setError(null);
     setVideoUrl(null);
     setPredictionId(null);
     setProgress(5); // Iniciar com 5% para feedback visual
+    setCheckCount(0);
     toast.info("Iniciando geração de vídeo com IA...");
 
     try {
       console.log("Enviando requisição para gerar vídeo com o prompt:", prompt);
       
       const { data, error } = await supabase.functions.invoke("generate-video", {
-        body: { prompt }
+        body: { prompt: prompt.trim() }
       });
       
-      if (error) throw new Error(error.message || "Erro ao iniciar a geração do vídeo");
+      if (error) {
+        console.error("Erro da função de borda:", error);
+        throw new Error(error.message || "Erro ao iniciar a geração do vídeo");
+      }
       
       console.log("Resposta da função generate-video:", data);
       
@@ -142,13 +160,13 @@ export function GenerateVideoButton({ prompt }: { prompt: string }) {
         const output = data.output;
         if (typeof output === "string") {
           setVideoUrl(output);
+          toast.success("Vídeo gerado com sucesso!");
         } else if (Array.isArray(output) && output.length > 0) {
           setVideoUrl(output[0]);
+          toast.success("Vídeo gerado com sucesso!");
         } else {
           throw new Error("Formato de output inválido: " + JSON.stringify(output));
         }
-        
-        toast.success("Vídeo gerado com sucesso!");
       } else {
         // Resposta inesperada
         throw new Error("Resposta inesperada da API: " + JSON.stringify(data));
@@ -165,7 +183,11 @@ export function GenerateVideoButton({ prompt }: { prompt: string }) {
 
   return (
     <div className="space-y-4">
-      <Button onClick={handleGenerateVideo} disabled={loading}>
+      <Button 
+        onClick={handleGenerateVideo} 
+        disabled={loading || !prompt.trim()} 
+        className="w-full sm:w-auto"
+      >
         {loading ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -186,9 +208,10 @@ export function GenerateVideoButton({ prompt }: { prompt: string }) {
       )}
 
       {error && (
-        <div className="p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm">
-          <strong>Erro:</strong> {error}
-        </div>
+        <Alert variant="destructive" className="mt-4">
+          <AlertTitle>Erro na geração do vídeo</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
 
       {videoUrl && (

@@ -37,6 +37,9 @@ serve(async (req) => {
 
     const prediction = await response.json();
     console.log("Status atual da geração:", prediction.status);
+    
+    // Also log the full prediction object for debugging purposes
+    console.log("Full prediction object:", JSON.stringify(prediction));
 
     return new Response(
       JSON.stringify(prediction),
