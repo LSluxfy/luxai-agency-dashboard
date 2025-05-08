@@ -19,6 +19,9 @@ serve(async (req) => {
     // If it's a status check request
     if (body.predictionId) {
       console.log("Checking status for prediction:", body.predictionId)
+      
+      // Add more detailed logging to debug response issues
+      console.log("Sending status check request to Replicate API")
       const response = await fetch(`https://api.replicate.com/v1/predictions/${body.predictionId}`, {
         headers: {
           Authorization: `Bearer ${REPLICATE_API_TOKEN}`,
@@ -36,7 +39,16 @@ serve(async (req) => {
       }
       
       const prediction = await response.json()
-      console.log("Status check response:", JSON.stringify(prediction));
+      console.log("Status check complete response:", JSON.stringify(prediction));
+      
+      // More detailed logging of the output field
+      if (prediction.output) {
+        console.log("Output received:", typeof prediction.output, Array.isArray(prediction.output));
+        if (Array.isArray(prediction.output)) {
+          console.log("Output array length:", prediction.output.length);
+          console.log("First output item:", prediction.output[0]);
+        }
+      }
       
       return new Response(JSON.stringify(prediction), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -53,9 +65,8 @@ serve(async (req) => {
       )
     }
 
-    // Determine which model to use
-    const useRealisticVision = body.useRealisticVision ?? true // Default to Realistic Vision
-    const modelVersion = "6eb633a82ab3e7a4417d0af2e84e24b4b419c76f86f6e837824d02ae6845dc81" // Realistic Vision v3
+    // The Realistic Vision v3 model
+    const modelVersion = "6eb633a82ab3e7a4417d0af2e84e24b4b419c76f86f6e837824d02ae6845dc81"
     
     console.log(`Generating image with Realistic Vision v3 model`)
     
@@ -63,21 +74,25 @@ serve(async (req) => {
     const imageData = body.image;
     console.log("Image data format check:", imageData.substring(0, 30) + "...")
     
+    // Random seed if not provided
+    const seed = body.seed || Math.floor(Math.random() * 1000000);
+    console.log("Using seed:", seed);
+    
     // Build request body for Realistic Vision v3 model
     const replicateBody = {
       version: modelVersion,
       input: {
         image: imageData,
         prompt: body.prompt || "Foto profissional do produto em fundo branco, luz natural, alta qualidade, 4K",
-        seed: body.seed || Math.floor(Math.random() * 1000000), // Random seed if not provided
+        seed: seed,
         strength: body.strength || 0.21, // Lower strength to preserve more of original image
         negative_prompt: "blurry, low quality, distorted"
       }
     }
 
     console.log("Sending request to Replicate API with model:", modelVersion)
-    console.log("Request body:", JSON.stringify({
-      ...replicateBody,
+    console.log("Request parameters:", JSON.stringify({
+      version: replicateBody.version,
       input: {
         ...replicateBody.input,
         image: replicateBody.input.image.substring(0, 30) + "..." // Truncate the image data for logging
