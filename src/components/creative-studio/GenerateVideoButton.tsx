@@ -316,7 +316,7 @@ export function GenerateVideoButton() {
                   <p className="text-xs text-center text-muted-foreground mt-2">
                     {selectedFile?.name} ({(selectedFile?.size || 0) / 1024 < 1024 
                       ? `${Math.round((selectedFile?.size || 0) / 1024)} KB` 
-                      : `${(selectedFile?.size || 0) / (1024 * 1024).toFixed(2)} MB`})
+                      : `${((selectedFile?.size || 0) / (1024 * 1024)).toFixed(2)} MB`})
                   </p>
                 </div>
               )}
