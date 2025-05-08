@@ -5,7 +5,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import CreativeGenerator from "@/components/creative-studio/CreativeGenerator";
 import CreativeGallery from "@/components/creative-studio/CreativeGallery";
 import { GenerateImageButton } from "@/components/creative-studio/GenerateImageButton";
-import { GenerateVideoButton } from "@/components/creative-studio/GenerateVideoButton";
 import { GenerateWanVideoButton } from "@/components/creative-studio/GenerateWanVideoButton";
 
 const CreativeStudio = () => {
@@ -26,7 +25,7 @@ const CreativeStudio = () => {
         </p>
         <p className="text-muted-foreground mt-1 text-sm">
           <span className="bg-gradient-to-r from-purple-500 to-blue-500 text-white px-2 py-0.5 rounded-sm">Novo!</span>{" "}
-          Modelo Realistic Vision V3 para transformação de imagens ultra-realistas, SDXL para geração direta e múltiplos geradores de vídeo.
+          Modelo Realistic Vision V3 para transformação de imagens ultra-realistas, SDXL para geração direta e WAN 2.1 para geração de vídeo.
         </p>
         {/* Updated troubleshooting hint */}
         <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-md">
@@ -38,16 +37,15 @@ const CreativeStudio = () => {
             • A geração de imagens pode levar alguns minutos para ser concluída<br/>
             • Se a imagem não for gerada após várias tentativas, tente usar uma imagem diferente ou modificar o prompt<br/>
             • Para o botão Realistic Vision, certifique-se de que a imagem está publicamente acessível<br/>
-            • Para gerar vídeo, forneça uma URL de imagem HTTPS pública
+            • Para gerar vídeo com WAN 2.1, forneça uma URL de imagem HTTPS pública
           </p>
         </div>
       </header>
       
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        <TabsList className="grid w-full grid-cols-5 mb-6">
+        <TabsList className="grid w-full grid-cols-4 mb-6">
           <TabsTrigger value="create">Criar Novo</TabsTrigger>
           <TabsTrigger value="sdxl">Gerar com SDXL</TabsTrigger>
-          <TabsTrigger value="video">Imagem para Vídeo</TabsTrigger>
           <TabsTrigger value="wan-video">Vídeo com WAN 2.1</TabsTrigger>
           <TabsTrigger value="gallery">Meus Criativos Salvos</TabsTrigger>
         </TabsList>
@@ -74,20 +72,6 @@ const CreativeStudio = () => {
                   ></textarea>
                 </div>
                 <GenerateImageButton prompt={sdxlPrompt} />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="video" className="mt-0">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="mb-4">
-                <h2 className="text-xl font-bold mb-3">Converter Imagem em Vídeo</h2>
-                <p className="text-muted-foreground mb-4">
-                  Use a tecnologia Runway Gen-4 para transformar imagens estáticas em vídeos curtos e dinâmicos.
-                </p>
-                <GenerateVideoButton />
               </div>
             </CardContent>
           </Card>
