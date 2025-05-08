@@ -51,10 +51,10 @@ serve(async (req) => {
     const imageData = body.image;
     console.log("Image data format check:", imageData.substring(0, 30) + "...")
     
-    // Use a different model that's better at image-to-image transformations
+    // Use a different model that's publicly available for image-to-image generation
     // Build request body for Replicate API
     const replicateBody = {
-      version: "a628ea0a2df7b38c0ee2afd9731b20a91b5d5380059e249c91c6e00f725429ee",
+      version: "565a2caa080cd9e2c2fb89062ac8e22a276a4a502af8a5a1fe722b9f94feb67b", // stable-diffusion-img2img model
       input: {
         image: imageData,
         prompt: body.prompt || "Create a professional, high-quality, enhanced version of this image",
