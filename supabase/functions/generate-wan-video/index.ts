@@ -32,31 +32,21 @@ serve(async (req) => {
 
     console.log("Iniciando geração de vídeo WAN com imagem e prompt:", prompt);
 
-    // Updated to use a more recent, accessible WAN model version
+    // Usando a abordagem direta para acessar o modelo WAN 2.1
     const response = await fetch(
-      "https://api.replicate.com/v1/predictions",
+      "https://api.replicate.com/v1/models/wavespeedai/wan-2.1-i2v-480p/predictions",
       {
         method: "POST",
         headers: {
           Authorization: `Bearer ${REPLICATE_API_TOKEN}`,
           "Content-Type": "application/json",
-          "Prefer": "wait"
+          "Prefer": "wait=60"
         },
         body: JSON.stringify({
-          // Using the correct WAN 2 model version that's publicly available
-          version: "c9e2d8c199566a8b87aef9656618d8b89c7968b21d729afc902177825a1097a2",
           input: {
             image: image,
-            prompt: prompt || "A person is talking",
-            max_area: "832x480",
-            fast_mode: "Balanced",
-            lora_scale: 1,
-            num_frames: 81,
-            sample_shift: 3,
-            sample_steps: 30,
-            frames_per_second: 16,
-            sample_guide_scale: 5
-          },
+            prompt: prompt || "A person is talking"
+          }
         }),
       }
     );

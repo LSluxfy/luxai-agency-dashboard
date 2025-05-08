@@ -2,8 +2,8 @@
 project_id = "lgblicqyurcttmlguwsd"
 
 [functions]
-[functions.generate-video]
+[functions.generate-wan-video]
 verify_jwt = false
 
-[functions.check-video-status]
+[functions.check-wan-video-status]
 verify_jwt = false
