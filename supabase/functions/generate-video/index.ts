@@ -30,8 +30,11 @@ serve(async (req) => {
 
     console.log("Usando URL de imagem para a geração de vídeo:", imageUrl.substring(0, 100) + "...");
     
-    // Make the API call to Runway with the correct endpoint and parameters
-    const response = await fetch("https://api.runwayml.com/v1/image_to_video", {
+    // Endpoint e cabeçalhos corretos conforme documentação da Runway
+    const runwayEndpoint = "https://api.runwayml.com/v1/image_to_video";
+    console.log("Chamando endpoint Runway:", runwayEndpoint);
+    
+    const response = await fetch(runwayEndpoint, {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${RUNWAY_API_KEY}`,
@@ -46,7 +49,7 @@ serve(async (req) => {
       }),
     });
 
-    // Log the response status for debugging
+    // Log completo para debugging
     console.log("Runway API response status:", response.status);
     console.log("Runway API response headers:", JSON.stringify([...response.headers.entries()]));
     

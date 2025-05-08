@@ -28,11 +28,16 @@ serve(async (req) => {
       throw new Error("ID da tarefa não fornecido.");
     }
 
-    // Call Runway API to check task status with correct API version header
-    const response = await fetch(`https://api.runwayml.com/v1/tasks/${id}`, {
+    // Endpoint correto para verificação de status
+    const statusEndpoint = `https://api.runwayml.com/v1/tasks/${id}`;
+    console.log("Chamando endpoint de status:", statusEndpoint);
+    
+    // Call Runway API com os cabeçalhos corretos
+    const response = await fetch(statusEndpoint, {
       method: "GET",
       headers: {
         "Authorization": `Bearer ${RUNWAY_API_KEY}`,
+        "Content-Type": "application/json",
         "X-Runway-Version": "2024-11-06"
       }
     });

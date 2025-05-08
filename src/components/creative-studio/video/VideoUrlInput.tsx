@@ -26,10 +26,11 @@ const VideoUrlInput = ({ imageUrl, setImageUrl }: VideoUrlInputProps) => {
         <AlertTitle className="text-blue-700 text-sm font-medium">Requisitos para o URL da imagem</AlertTitle>
         <AlertDescription className="text-blue-600 text-xs">
           • A imagem deve estar publicamente acessível via HTTPS<br />
-          • URLs de sites como Imgur, Postimages ou Drive público funcionam melhor<br />
-          • Certifique-se de que o link termine com uma extensão de imagem (.jpg, .png, etc)<br />
-          • Evite URLs com parâmetros de consulta (depois de ?)<br />
+          • Use URLs diretos da imagem que terminem com extensão (.jpg, .png, etc)<br />
+          • Recomendado: imgur.com (copie o link direto clicando com botão direito na imagem)<br />
+          • Evite URLs com parâmetros de consulta (após o símbolo ?)<br />
           • Não use URLs encurtados ou redirecionados<br />
+          • Se usar Google Drive, certifique-se de gerar um link direto público<br />
           • Para melhores resultados, use imagens claras e de alta qualidade
         </AlertDescription>
       </Alert>
