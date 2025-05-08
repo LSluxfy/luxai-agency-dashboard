@@ -54,7 +54,48 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
+    
+    // For direct text-to-image generation with SDXL
+    if (body.directGeneration && body.prompt) {
+      console.log("Generating image directly with SDXL model")
+      
+      const sdxlResponse = await fetch("https://api.replicate.com/v1/predictions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${REPLICATE_API_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          version: "7762fd07cf82c948538e41f63f77d685e02b063e37e496e96eefd46c929f9bdc", // SDXL model
+          input: {
+            width: 768,
+            height: 768,
+            prompt: body.prompt,
+            refine: "expert_ensemble_refiner",
+            apply_watermark: false,
+            num_inference_steps: 25,
+          },
+        }),
+      });
 
+      if (!sdxlResponse.ok) {
+        const errorText = await sdxlResponse.text();
+        console.error(`API Error (Status ${sdxlResponse.status}):`, errorText);
+        return new Response(
+          JSON.stringify({ error: `API Error: ${sdxlResponse.statusText}`, details: errorText }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: sdxlResponse.status }
+        );
+      }
+      
+      const prediction = await sdxlResponse.json();
+      console.log("SDXL generation response:", JSON.stringify(prediction));
+      
+      return new Response(JSON.stringify({ prediction }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Continue with image-to-image generation (Realistic Vision v3)
     // Validate required fields
     if (!body.image) {
       return new Response(
