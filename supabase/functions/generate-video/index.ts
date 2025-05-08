@@ -1,7 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
-const REPLICATE_API_TOKEN = Deno.env.get("REPLICATE_API_TOKEN") || "r8_D9h5KighG1MjcYbcDKlxc6jxJO0cABt4eJzaE";
+const REPLICATE_API_TOKEN = Deno.env.get("REPLICATE_API_TOKEN");
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -15,14 +15,19 @@ serve(async (req) => {
   }
 
   try {
+    // Validate API token
+    if (!REPLICATE_API_TOKEN) {
+      console.error("REPLICATE_API_TOKEN is not set in environment variables");
+      throw new Error("Replicate API token not found in environment variables.");
+    }
+
     const { prompt } = await req.json();
     console.log("Iniciando geração de vídeo com o prompt:", prompt);
 
-    // Updated model ID - using a valid and popular text-to-video model on Replicate
-    // This is Zeroscope V2 XL model which is publicly available
-    const modelVersion = "cjwbw/zeroscope-v2-xl:9f747673945c62801b13b84701c783929c0ee4e44cedc1c3b71ecee78de31715";
+    // Using the minimax/video-01 model as specified
+    const modelVersion = "minimax/video-01";
     
-    // Primeira chamada para iniciar a geração
+    // Make the API call to Replicate
     const response = await fetch("https://api.replicate.com/v1/predictions", {
       method: "POST",
       headers: {
@@ -30,17 +35,17 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        version: modelVersion,
+        version: "latest", // Using latest version as specified
         input: {
           prompt: prompt || "a woman is walking through a busy Tokyo street at night, she is wearing dark sunglasses",
-          fps: 24,
-          num_frames: 24,
-          width: 576,
-          height: 320,
         },
       }),
     });
 
+    // Log the response status for debugging
+    console.log("Replicate API response status:", response.status);
+    
+    // Handle non-200 responses
     if (!response.ok) {
       const errorText = await response.text();
       console.error("Erro na resposta da API Replicate:", response.status, errorText);
@@ -50,11 +55,10 @@ serve(async (req) => {
     const prediction = await response.json();
     console.log("Resposta da API Replicate (inicio):", prediction);
 
-    // Se a previsão está em andamento, vamos verificar o status
-    if (prediction.status === "starting" || prediction.status === "processing") {
+    // Return the prediction data for tracking
+    if (prediction.id) {
       console.log("Geração de vídeo iniciada, ID:", prediction.id);
       
-      // Vamos retornar o ID para que o frontend possa verificar o status depois
       return new Response(
         JSON.stringify({ 
           status: prediction.status, 
@@ -65,7 +69,7 @@ serve(async (req) => {
       );
     }
     
-    // Se já tiver um resultado disponível
+    // If already complete
     if (prediction.output) {
       console.log("Vídeo gerado com sucesso:", prediction.output);
       return new Response(
@@ -77,7 +81,7 @@ serve(async (req) => {
       );
     }
 
-    // Caso não tenha nem resultado nem seja processamento em andamento
+    // Handle unexpected response
     return new Response(
       JSON.stringify({ 
         status: "unknown",

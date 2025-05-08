@@ -1,7 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
-const REPLICATE_API_TOKEN = Deno.env.get("REPLICATE_API_TOKEN") || "r8_D9h5KighG1MjcYbcDKlxc6jxJO0cABt4eJzaE";
+const REPLICATE_API_TOKEN = Deno.env.get("REPLICATE_API_TOKEN");
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -15,6 +15,12 @@ serve(async (req) => {
   }
 
   try {
+    // Validate API token
+    if (!REPLICATE_API_TOKEN) {
+      console.error("REPLICATE_API_TOKEN is not set in environment variables");
+      throw new Error("Replicate API token not found in environment variables.");
+    }
+    
     const { id } = await req.json();
     console.log("Verificando status do vídeo com ID:", id);
 
@@ -28,6 +34,9 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
     });
+
+    // Log the response status for debugging
+    console.log("Replicate status check response status:", response.status);
 
     if (!response.ok) {
       const errorText = await response.text();

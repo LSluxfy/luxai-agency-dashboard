@@ -29,7 +29,7 @@ export function GenerateVideoButton({ prompt }: { prompt: string }) {
   useEffect(() => {
     if (!predictionId) return;
     
-    const maxChecks = 60; // Aumentado para cerca de 3 minutos (3s * 60)
+    const maxChecks = 60; // Máximo de 3 minutos (3s * 60)
     
     // Iniciar a verificação a cada 3 segundos
     const interval = window.setInterval(async () => {
