@@ -24,8 +24,8 @@ serve(async (req) => {
     const { prompt } = await req.json();
     console.log("Iniciando geração de vídeo com o prompt:", prompt);
 
-    // Try a different model that's more accessible
-    const modelVersion = "anotherjesse/zeroscope-v2-xl";
+    // Use the minimax/video-01 model as requested
+    const modelVersion = "minimax/video-01";
     
     // Make the API call to Replicate
     const response = await fetch("https://api.replicate.com/v1/predictions", {
@@ -33,16 +33,13 @@ serve(async (req) => {
       headers: {
         Authorization: `Bearer ${REPLICATE_API_TOKEN}`,
         "Content-Type": "application/json",
+        "Prefer": "wait"
       },
       body: JSON.stringify({
-        version: "71996d331e8ede8ef7bd76eba9fae056d0ae48de2c1432ed9fe94a75346682d5",
+        version: "latest",
         input: {
-          prompt: prompt || "a woman is walking through a busy Tokyo street at night, she is wearing dark sunglasses",
-          fps: 24,
-          num_frames: 24,
-          width: 576,
-          height: 320,
-        },
+          prompt: prompt || "a woman is walking through a busy Tokyo street at night, she is wearing dark sunglasses"
+        }
       }),
     });
 
