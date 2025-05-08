@@ -28,50 +28,55 @@ serve(async (req) => {
       throw new Error("ID da geração não fornecido");
     }
 
-    const response = await fetch(`https://api.runwayml.com/v1/image-to-video/${id}`, {
-      headers: {
-        "Authorization": `Bearer ${RUNWAY_API_KEY}`,
-        "Content-Type": "application/json",
-        // Removida a versão específica da API que estava causando o erro
-      },
-    });
+    try {
+      const response = await fetch(`https://api.runwayml.com/v1/image_to_video/${id}`, {
+        headers: {
+          "Authorization": `Bearer ${RUNWAY_API_KEY}`,
+          "Content-Type": "application/json",
+          "X-Runway-Version": "2024-03-01"
+        },
+      });
 
-    // Log the response status for debugging
-    console.log("Runway status check response status:", response.status);
+      // Log the response status for debugging
+      console.log("Runway status check response status:", response.status);
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Erro ao verificar status:", response.status, errorText);
-      throw new Error(`API respondeu com status ${response.status}: ${errorText}`);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Erro ao verificar status:", response.status, errorText);
+        throw new Error(`API respondeu com status ${response.status}: ${errorText}`);
+      }
+
+      const result = await response.json();
+      console.log("Status atual da geração:", result.status);
+      
+      // Also log the full result object for debugging purposes
+      console.log("Full result object:", JSON.stringify(result));
+      
+      // Map Runway API status to our application status
+      let status = result.status;
+      let output = null;
+      
+      if (result.status === "COMPLETED" || result.status === "completed") {
+        status = "succeeded";
+        output = result.video_url || result.output?.url || result.video;
+      } else if (result.status === "FAILED" || result.status === "failed") {
+        status = "failed";
+      } else if (result.status === "PROCESSING" || result.status === "QUEUED" || result.status === "processing" || result.status === "queued") {
+        status = "processing";
+      }
+
+      return new Response(
+        JSON.stringify({
+          status: status,
+          output: output,
+          rawResponse: result
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    } catch (error) {
+      console.error("Erro na chamada de verificação de status:", error);
+      throw error; // Re-throw para ser capturado pelo catch externo
     }
-
-    const result = await response.json();
-    console.log("Status atual da geração:", result.status);
-    
-    // Also log the full result object for debugging purposes
-    console.log("Full result object:", JSON.stringify(result));
-    
-    // Map Runway API status to our application status
-    let status = result.status;
-    let output = null;
-    
-    if (result.status === "COMPLETED" || result.status === "completed") {
-      status = "succeeded";
-      output = result.video || result.output?.video || result.output_url || result.video_url;
-    } else if (result.status === "FAILED" || result.status === "failed") {
-      status = "failed";
-    } else if (result.status === "PROCESSING" || result.status === "QUEUED" || result.status === "processing" || result.status === "queued") {
-      status = "processing";
-    }
-
-    return new Response(
-      JSON.stringify({
-        status: status,
-        output: output,
-        rawResponse: result
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
 
   } catch (error) {
     console.error("Erro na verificação de status:", error);

@@ -33,52 +33,59 @@ serve(async (req) => {
     
     // Determine if the image is a data URI or a regular URL
     if (imageUrl.startsWith("data:image/")) {
-      // It's a data URI, we'll use it directly in the new format
+      // It's a data URI
       console.log("Usando Data URI para a geração de vídeo");
       requestBody = JSON.stringify({
-        "input_image": imageUrl,
+        "promptImage": imageUrl,
+        "prompt": "" // prompt vazio para deixar a IA decidir o movimento
       });
     } else {
       // It's a regular URL
       console.log("Usando URL de imagem para a geração de vídeo:", imageUrl);
       requestBody = JSON.stringify({
-        "input_image": imageUrl,
+        "promptImage": imageUrl,
+        "prompt": "" // prompt vazio para deixar a IA decidir o movimento
       });
     }
 
     // Make the API call to Runway with updated headers
-    const response = await fetch("https://api.runwayml.com/v1/image-to-video", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${RUNWAY_API_KEY}`,
-        "Content-Type": "application/json",
-        // Removida a versão específica da API que estava causando o erro
-      },
-      body: requestBody,
-    });
+    try {
+      const response = await fetch("https://api.runwayml.com/v1/image_to_video", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${RUNWAY_API_KEY}`,
+          "Content-Type": "application/json",
+          "X-Runway-Version": "2024-03-01"
+        },
+        body: requestBody,
+      });
 
-    // Log the response status for debugging
-    console.log("Runway API response status:", response.status);
-    
-    // Handle non-200 responses
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Erro na resposta da API Runway:", response.status, errorText);
-      throw new Error(`API Runway respondeu com status ${response.status}: ${errorText}`);
+      // Log the response status for debugging
+      console.log("Runway API response status:", response.status);
+      
+      // Handle non-200 responses
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Erro na resposta da API Runway:", response.status, errorText);
+        throw new Error(`API Runway respondeu com status ${response.status}: ${errorText}`);
+      }
+
+      const prediction = await response.json();
+      console.log("Resposta da API Runway:", prediction);
+
+      // Return the prediction data
+      return new Response(
+        JSON.stringify({
+          status: "success", 
+          id: prediction.id || prediction.requestId,
+          message: "Geração de vídeo iniciada"
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    } catch (error) {
+      console.error("Erro na chamada da API Runway:", error);
+      throw error; // Re-throw para ser capturado pelo catch externo
     }
-
-    const prediction = await response.json();
-    console.log("Resposta da API Runway:", prediction);
-
-    // Return the prediction data
-    return new Response(
-      JSON.stringify({
-        status: "success", 
-        id: prediction.id || prediction.requestId,
-        message: "Geração de vídeo iniciada"
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
 
   } catch (error) {
     console.error("Erro na função de geração de vídeo:", error);
