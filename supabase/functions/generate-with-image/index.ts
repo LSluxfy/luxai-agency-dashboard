@@ -57,7 +57,7 @@ serve(async (req) => {
       input: {
         image: imageData,
         prompt: body.prompt || "Create a professional, high-quality, enhanced version of this image",
-        num_inference_steps: "25"  // Important: Match the string format from the curl example
+        num_inference_steps: 25  // Changed from string to number
       }
     }
 
