@@ -22,10 +22,26 @@ serve(async (req) => {
     }
 
     const { imageUrl } = await req.json();
-    console.log("Iniciando geração de vídeo com a imagem:", imageUrl);
+    console.log("Iniciando geração de vídeo com a imagem");
 
     if (!imageUrl) {
       throw new Error("URL da imagem não fornecida. Por favor, forneça uma URL de imagem válida.");
+    }
+
+    // Determine if the image is a data URI or a regular URL
+    let requestBody;
+    if (imageUrl.startsWith("data:image/")) {
+      // It's a data URI, we'll use it directly
+      console.log("Usando Data URI para a geração de vídeo");
+      requestBody = JSON.stringify({
+        "promptImage": imageUrl
+      });
+    } else {
+      // It's a regular URL
+      console.log("Usando URL de imagem para a geração de vídeo:", imageUrl);
+      requestBody = JSON.stringify({
+        "promptImage": imageUrl
+      });
     }
 
     // Make the API call to Runway
@@ -36,9 +52,7 @@ serve(async (req) => {
         "X-Runway-Version": "2024-11-06",
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        "promptImage": imageUrl
-      }),
+      body: requestBody,
     });
 
     // Log the response status for debugging

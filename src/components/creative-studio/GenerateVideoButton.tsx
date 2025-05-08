@@ -1,13 +1,14 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Loader2, ExternalLink, Upload } from "lucide-react";
+import { Loader2, ExternalLink, Upload, Link } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export function GenerateVideoButton() {
   const [loading, setLoading] = useState(false);
@@ -18,6 +19,9 @@ export function GenerateVideoButton() {
   const [statusCheckInterval, setStatusCheckInterval] = useState<number | null>(null);
   const [checkCount, setCheckCount] = useState<number>(0);
   const [imageUrl, setImageUrl] = useState<string>("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [tabValue, setTabValue] = useState<string>("url");
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   // Limpar o intervalo quando o componente é desmontado
   useEffect(() => {
@@ -120,9 +124,62 @@ export function GenerateVideoButton() {
     return () => clearInterval(interval);
   }, [predictionId, checkCount]);
 
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files[0]) {
+      const file = event.target.files[0];
+      
+      // Validar tipo de arquivo (apenas imagens)
+      if (!file.type.startsWith('image/')) {
+        toast.error("Por favor, selecione um arquivo de imagem válido");
+        return;
+      }
+      
+      // Validar tamanho (máximo 5MB)
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      if (file.size > maxSize) {
+        toast.error("O arquivo é muito grande. Tamanho máximo permitido: 5MB");
+        return;
+      }
+      
+      setSelectedFile(file);
+      
+      // Criar URL de visualização
+      const objectUrl = URL.createObjectURL(file);
+      setPreviewUrl(objectUrl);
+      
+      // Limpar o URL antigo ao desmontar
+      return () => URL.revokeObjectURL(objectUrl);
+    }
+  };
+
+  const convertFileToDataUri = async (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          resolve(reader.result);
+        } else {
+          reject(new Error('Falha ao converter arquivo para Data URI'));
+        }
+      };
+      reader.onerror = () => {
+        reject(new Error('Erro ao ler o arquivo'));
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handleGenerateVideo = async () => {
-    if (!imageUrl.trim()) {
+    // Verificar se temos uma URL ou um arquivo
+    const isUrlMode = tabValue === "url";
+    
+    if (isUrlMode && !imageUrl.trim()) {
       toast.error("Por favor, forneça uma URL de imagem válida");
+      return;
+    }
+    
+    if (!isUrlMode && !selectedFile) {
+      toast.error("Por favor, selecione um arquivo de imagem");
       return;
     }
 
@@ -135,10 +192,22 @@ export function GenerateVideoButton() {
     toast.info("Iniciando geração de vídeo com IA...");
 
     try {
-      console.log("Enviando requisição para gerar vídeo com a imagem:", imageUrl);
+      let imageSource;
+      
+      if (isUrlMode) {
+        // Usar a URL diretamente
+        imageSource = imageUrl.trim();
+        console.log("Enviando requisição para gerar vídeo com a imagem URL:", imageSource);
+      } else if (selectedFile) {
+        // Converter o arquivo para Data URI
+        imageSource = await convertFileToDataUri(selectedFile);
+        console.log("Enviando requisição para gerar vídeo com imagem carregada");
+      } else {
+        throw new Error("Nenhuma imagem selecionada");
+      }
       
       const { data, error } = await supabase.functions.invoke("generate-video", {
-        body: { imageUrl: imageUrl.trim() }
+        body: { imageUrl: imageSource }
       });
       
       if (error) {
@@ -183,23 +252,82 @@ export function GenerateVideoButton() {
 
   return (
     <div className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="image-url">URL da Imagem (HTTPS):</Label>
-        <Input
-          id="image-url"
-          value={imageUrl}
-          onChange={(e) => setImageUrl(e.target.value)}
-          placeholder="https://exemplo.com/imagem.jpg"
-          className="w-full"
-        />
-        <p className="text-xs text-muted-foreground">
-          Certifique-se de que a imagem esteja publicamente acessível via HTTPS.
-        </p>
-      </div>
+      <Tabs value={tabValue} onValueChange={setTabValue} className="w-full">
+        <TabsList className="mb-4">
+          <TabsTrigger value="url" className="flex items-center gap-1">
+            <Link className="h-4 w-4" />
+            URL da Imagem
+          </TabsTrigger>
+          <TabsTrigger value="upload" className="flex items-center gap-1">
+            <Upload className="h-4 w-4" />
+            Upload de Imagem
+          </TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="url" className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="image-url">URL da Imagem (HTTPS):</Label>
+            <Input
+              id="image-url"
+              value={imageUrl}
+              onChange={(e) => setImageUrl(e.target.value)}
+              placeholder="https://exemplo.com/imagem.jpg"
+              className="w-full"
+            />
+            <p className="text-xs text-muted-foreground">
+              Certifique-se de que a imagem esteja publicamente acessível via HTTPS.
+            </p>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="upload" className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="image-upload">Upload de Imagem:</Label>
+            <div className="grid gap-4">
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:bg-gray-50 transition-colors">
+                <input
+                  id="image-upload"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleFileChange}
+                />
+                <label htmlFor="image-upload" className="cursor-pointer flex flex-col items-center justify-center gap-2">
+                  <Upload className="h-8 w-8 text-gray-400" />
+                  <span className="text-sm font-medium">
+                    Clique para fazer upload ou arraste uma imagem aqui
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    PNG, JPG, GIF até 5MB
+                  </span>
+                </label>
+              </div>
+              
+              {previewUrl && (
+                <div className="mt-2">
+                  <p className="text-sm font-medium mb-2">Prévia:</p>
+                  <div className="relative aspect-square w-full max-w-xs mx-auto border rounded-md overflow-hidden">
+                    <img
+                      src={previewUrl}
+                      alt="Prévia da imagem"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <p className="text-xs text-center text-muted-foreground mt-2">
+                    {selectedFile?.name} ({(selectedFile?.size || 0) / 1024 < 1024 
+                      ? `${Math.round((selectedFile?.size || 0) / 1024)} KB` 
+                      : `${(selectedFile?.size || 0) / (1024 * 1024).toFixed(2)} MB`})
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </TabsContent>
+      </Tabs>
 
       <Button 
         onClick={handleGenerateVideo} 
-        disabled={loading || !imageUrl.trim()} 
+        disabled={loading || (tabValue === "url" ? !imageUrl.trim() : !selectedFile)} 
         className="w-full sm:w-auto"
       >
         {loading ? (
