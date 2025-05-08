@@ -1,7 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
-const RUNWAY_API_KEY = Deno.env.get("RUNWAY_API_KEY");
+const RUNWAY_API_KEY = "key_5e42d8b3213eb3c047ec15887c936aafc50b951e5369bb2d6118035d32d4f76fefb049c493b05b4cb83ef4580e7ac27a3f3b2b67ba00331fbf87f73461cdaf18";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -15,10 +15,10 @@ serve(async (req) => {
   }
 
   try {
-    // Validate API token
+    // Use hardcoded API token instead of environment variable
     if (!RUNWAY_API_KEY) {
-      console.error("RUNWAY_API_KEY is not set in environment variables");
-      throw new Error("Runway API key not found in environment variables.");
+      console.error("RUNWAY_API_KEY is not valid");
+      throw new Error("Runway API key is not valid.");
     }
 
     const { imageUrl } = await req.json();
