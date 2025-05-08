@@ -36,23 +36,13 @@ serve(async (req) => {
       // It's a data URI, we'll use it directly in the new format
       console.log("Usando Data URI para a geração de vídeo");
       requestBody = JSON.stringify({
-        "promptImage": [
-          {
-            "uri": imageUrl,
-            "position": "first"
-          }
-        ]
+        "input_image": imageUrl,
       });
     } else {
       // It's a regular URL
       console.log("Usando URL de imagem para a geração de vídeo:", imageUrl);
       requestBody = JSON.stringify({
-        "promptImage": [
-          {
-            "uri": imageUrl,
-            "position": "first"
-          }
-        ]
+        "input_image": imageUrl,
       });
     }
 
@@ -61,8 +51,8 @@ serve(async (req) => {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${RUNWAY_API_KEY}`,
-        "X-Runway-API-Version": "2024-11-06",
         "Content-Type": "application/json",
+        // Removida a versão específica da API que estava causando o erro
       },
       body: requestBody,
     });

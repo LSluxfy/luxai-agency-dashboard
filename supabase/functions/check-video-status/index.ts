@@ -31,8 +31,8 @@ serve(async (req) => {
     const response = await fetch(`https://api.runwayml.com/v1/image-to-video/${id}`, {
       headers: {
         "Authorization": `Bearer ${RUNWAY_API_KEY}`,
-        "X-Runway-API-Version": "2024-11-06",
         "Content-Type": "application/json",
+        // Removida a versão específica da API que estava causando o erro
       },
     });
 
@@ -55,12 +55,12 @@ serve(async (req) => {
     let status = result.status;
     let output = null;
     
-    if (result.status === "COMPLETED") {
+    if (result.status === "COMPLETED" || result.status === "completed") {
       status = "succeeded";
-      output = result.videoUrl || result.video;
-    } else if (result.status === "FAILED") {
+      output = result.video || result.output?.video || result.output_url || result.video_url;
+    } else if (result.status === "FAILED" || result.status === "failed") {
       status = "failed";
-    } else if (result.status === "PROCESSING" || result.status === "QUEUED") {
+    } else if (result.status === "PROCESSING" || result.status === "QUEUED" || result.status === "processing" || result.status === "queued") {
       status = "processing";
     }
 
