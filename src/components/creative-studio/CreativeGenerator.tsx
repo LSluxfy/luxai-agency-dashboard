@@ -121,19 +121,11 @@ const CreativeGenerator = () => {
           toast.error("Falha ao gerar imagem. Por favor, tente novamente.");
         } else if (data.status === "processing") {
           // Update progress for better UX
-          if (data.logs) {
-            const match = data.logs.match(/(\d+)%/);
-            if (match && match[1]) {
-              setGenerationProgress(parseInt(match[1]));
-            } else {
-              // If no percentage in logs, use a simple incremental approach
-              setGenerationProgress(prev => Math.min(prev + 5, 95));
-            }
-          } else {
-            setGenerationProgress(prev => Math.min(prev + 5, 95));
-          }
+          setGenerationProgress(prev => Math.min(prev + 10, 90));
+        } else if (data.status === "starting") {
+          // Update progress for starting status
+          setGenerationProgress(20);
         }
-        // For "starting" or "processing" states, we continue polling
       } catch (error) {
         console.error("Error during polling:", error);
         clearInterval(interval);
@@ -375,6 +367,7 @@ const CreativeGenerator = () => {
 
       // Store the prediction ID for polling
       setReplicatePredictionId(data.prediction.id);
+      setGenerationProgress(20);
       toast.info("Imagem sendo processada, por favor aguarde...");
       
     } catch (error) {

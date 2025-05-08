@@ -67,7 +67,6 @@ serve(async (req) => {
       headers: {
         Authorization: `Bearer ${REPLICATE_API_TOKEN}`,
         "Content-Type": "application/json",
-        "Prefer": "wait"
       },
       body: JSON.stringify(replicateBody),
     })
