@@ -33,11 +33,12 @@ serve(async (req) => {
       method: "GET",
       headers: {
         "Authorization": `Bearer ${RUNWAY_API_KEY}`,
-        "X-Runway-Version": "2024-11-06" // This is the correct API version
+        "X-Runway-Version": "2024-11-06"
       }
     });
 
     console.log("Status da verificação:", response.status);
+    console.log("Response headers:", JSON.stringify([...response.headers.entries()]));
 
     if (!response.ok) {
       const errorText = await response.text();

@@ -28,6 +28,8 @@ const VideoUrlInput = ({ imageUrl, setImageUrl }: VideoUrlInputProps) => {
           • A imagem deve estar publicamente acessível via HTTPS<br />
           • URLs de sites como Imgur, Postimages ou Drive público funcionam melhor<br />
           • Certifique-se de que o link termine com uma extensão de imagem (.jpg, .png, etc)<br />
+          • Evite URLs com parâmetros de consulta (depois de ?)<br />
+          • Não use URLs encurtados ou redirecionados<br />
           • Para melhores resultados, use imagens claras e de alta qualidade
         </AlertDescription>
       </Alert>
