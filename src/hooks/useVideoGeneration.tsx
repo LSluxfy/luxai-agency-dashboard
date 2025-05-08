@@ -132,7 +132,7 @@ export const useVideoGeneration = (): VideoGenerationResult => {
     toast.info("Iniciando geração de vídeo com IA...");
 
     try {
-      console.log("Enviando requisição para gerar vídeo com a imagem:", imageSource.substring(0, 30) + "...");
+      console.log("Enviando requisição para gerar vídeo com a imagem");
       
       const { data, error } = await supabase.functions.invoke("generate-video", {
         body: { imageUrl: imageSource }
@@ -149,21 +149,6 @@ export const useVideoGeneration = (): VideoGenerationResult => {
         // We have a prediction ID to track
         setPredictionId(data.id);
         toast.info("Geração de vídeo iniciada, por favor aguarde...");
-      } else if (data.output) {
-        // Result immediately available (unlikely, but possible)
-        setProgress(100);
-        setLoading(false);
-        
-        const output = data.output;
-        if (typeof output === "string") {
-          setVideoUrl(output);
-          toast.success("Vídeo gerado com sucesso!");
-        } else if (Array.isArray(output) && output.length > 0) {
-          setVideoUrl(output[0]);
-          toast.success("Vídeo gerado com sucesso!");
-        } else {
-          throw new Error("Formato de output inválido: " + JSON.stringify(output));
-        }
       } else {
         // Unexpected response
         throw new Error("Resposta inesperada da API: " + JSON.stringify(data));

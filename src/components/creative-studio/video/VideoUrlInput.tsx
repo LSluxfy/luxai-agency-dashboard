@@ -28,7 +28,7 @@ const VideoUrlInput = ({ imageUrl, setImageUrl }: VideoUrlInputProps) => {
           • A imagem deve estar publicamente acessível via HTTPS<br />
           • URLs de sites como Imgur, Postimages ou Drive público funcionam melhor<br />
           • Certifique-se de que o link termine com uma extensão de imagem (.jpg, .png, etc)<br />
-          • Dimensões recomendadas: 1024x1024 pixels
+          • Para melhores resultados, use imagens claras e de alta qualidade
         </AlertDescription>
       </Alert>
     </div>

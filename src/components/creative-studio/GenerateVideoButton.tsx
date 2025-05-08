@@ -58,6 +58,17 @@ export function GenerateVideoButton() {
 
   return (
     <div className="space-y-4">
+      <Alert className="bg-amber-50 border-amber-200 mb-4">
+        <AlertTitle className="text-amber-800 font-medium">Sobre a geração de vídeo com Runway Gen-4</AlertTitle>
+        <AlertDescription className="text-amber-700 text-sm">
+          • Usando o modelo <strong>gen4_turbo</strong> da Runway para converter imagens em vídeos de 5 segundos<br />
+          • A proporção do vídeo de saída será 1280x720 (widescreen)<br />
+          • Imagens de alta qualidade produzem resultados melhores<br />
+          • A geração pode levar de 1 a 3 minutos para ser concluída<br />
+          • Certifique-se de usar imagens com permissões adequadas
+        </AlertDescription>
+      </Alert>
+
       <Tabs value={tabValue} onValueChange={setTabValue} className="w-full">
         <TabsList className="mb-4">
           <TabsTrigger value="url" className="flex items-center gap-1">
@@ -97,6 +108,15 @@ export function GenerateVideoButton() {
         )}
       </Button>
 
+      {predictionId && (
+        <Alert className="bg-blue-50 border-blue-200 mt-4">
+          <AlertTitle className="text-blue-800 font-medium">ID do vídeo</AlertTitle>
+          <AlertDescription className="text-blue-700 text-sm font-mono">
+            {predictionId}
+          </AlertDescription>
+        </Alert>
+      )}
+
       <VideoGenerationProgress progress={progress} predictionId={predictionId} />
 
       {error && (
@@ -109,4 +129,4 @@ export function GenerateVideoButton() {
       <VideoViewer videoUrl={videoUrl} />
     </div>
   );
-}
+};

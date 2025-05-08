@@ -1,7 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
-const RUNWAY_API_KEY = "key_5e42d8b3213eb3c047ec15887c936aafc50b951e5369bb2d6118035d32d4f76fefb049c493b05b4cb83ef4580e7ac27a3f3b2b67ba00331fbf87f73461cdaf18";
+const RUNWAY_API_KEY = Deno.env.get('RUNWAY_API_KEY');
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -15,83 +15,68 @@ serve(async (req) => {
   }
 
   try {
-    // Validate API token
+    // Check if API key exists
     if (!RUNWAY_API_KEY) {
-      console.error("RUNWAY_API_KEY is not valid");
-      throw new Error("Runway API key is not valid.");
+      console.error("RUNWAY_API_KEY is not set");
+      throw new Error("Runway API key is not configured.");
     }
-    
+
     const { id } = await req.json();
-    console.log("Verificando status do vídeo com ID:", id);
+    console.log("Verificando status da tarefa:", id);
 
     if (!id) {
-      throw new Error("ID da geração não fornecido");
+      throw new Error("ID da tarefa não fornecido.");
     }
 
-    try {
-      const response = await fetch(`https://api.runwayml.com/v1/generation/${id}`, {
-        headers: {
-          "Authorization": `Bearer ${RUNWAY_API_KEY}`,
-          "Content-Type": "application/json",
-          "Accept": "application/json"
-        },
-      });
-
-      // Log the response status for debugging
-      console.log("Runway status check response status:", response.status);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Erro ao verificar status:", response.status, errorText);
-        throw new Error(`API respondeu com status ${response.status}: ${errorText}`);
+    // Call Runway API to check task status
+    const response = await fetch(`https://api.runwayml.com/v1/tasks/${id}`, {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${RUNWAY_API_KEY}`,
+        "X-Runway-Version": "2024-11-06"
       }
+    });
 
-      const result = await response.json();
-      console.log("Status atual da geração:", result.status);
-      
-      // Also log the full result object for debugging purposes
-      console.log("Full result object:", JSON.stringify(result));
-      
-      // Map Runway API status to our application status
-      let status = result.status;
-      let output = null;
-      
-      if (result.status === "COMPLETED" || result.status === "completed") {
-        status = "succeeded";
-        // O formato da resposta pode variar dependendo da versão da API
-        output = result.video_url || result.video || result.output || 
-                (result.videos && result.videos.length > 0 ? result.videos[0] : null);
-      } else if (result.status === "FAILED" || result.status === "failed") {
-        status = "failed";
-      } else if (result.status === "PROCESSING" || result.status === "QUEUED" || 
-                result.status === "processing" || result.status === "queued") {
-        status = "processing";
-      }
+    console.log("Status da verificação:", response.status);
 
-      return new Response(
-        JSON.stringify({
-          status: status,
-          output: output,
-          rawResponse: result
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    } catch (error) {
-      console.error("Erro na chamada de verificação de status:", error);
-      throw error; // Re-throw para ser capturado pelo catch externo
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Erro ao verificar status da tarefa:", response.status, errorText);
+      throw new Error(`API Runway respondeu com status ${response.status}: ${errorText}`);
     }
 
+    const taskStatus = await response.json();
+    console.log("Detalhes da tarefa:", taskStatus);
+
+    // Handle different status states and format response
+    let output = null;
+    let status = "processing";
+
+    if (taskStatus.status === "COMPLETED" && taskStatus.output?.videoUrl) {
+      output = taskStatus.output.videoUrl;
+      status = "succeeded";
+    } else if (taskStatus.status === "FAILED") {
+      status = "failed";
+    }
+
+    return new Response(
+      JSON.stringify({
+        status,
+        output,
+        original: taskStatus
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   } catch (error) {
-    console.error("Erro na verificação de status:", error);
-    
+    console.error("Erro ao verificar o status:", error);
     return new Response(
       JSON.stringify({
         status: "error",
-        message: error.message || "Erro desconhecido ao verificar status"
+        message: error.message || "Erro desconhecido ao verificar o status"
       }),
       { 
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
       }
     );
   }
