@@ -16,7 +16,7 @@ const Logo = ({ variant = "default" }: LogoProps) => {
       )}
     >
       <span className="text-primary">Lux</span>
-      <span className="text-luxai-blue-dark">AI</span>
+      <span className="text-luxai-blue-dark">Fy</span>
       {variant !== "sidebar" && (
         <span className="font-light ml-2">Agency</span>
       )}
