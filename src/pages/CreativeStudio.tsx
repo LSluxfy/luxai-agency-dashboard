@@ -21,6 +21,10 @@ const CreativeStudio = () => {
           Crie criativos profissionais para suas campanhas com comandos e imagens de referência. 
           Nossa IA gera imagens e textos prontos para anúncios.
         </p>
+        <p className="text-muted-foreground mt-1 text-sm">
+          <span className="bg-gradient-to-r from-purple-500 to-blue-500 text-white px-2 py-0.5 rounded-sm">Novo!</span>{" "}
+          Experimente o modelo Realistic Vision para imagens ultra-realistas.
+        </p>
       </header>
       
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">

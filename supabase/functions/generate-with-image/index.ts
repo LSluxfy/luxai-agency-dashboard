@@ -44,24 +44,45 @@ serve(async (req) => {
       )
     }
 
-    console.log("Generating image with reference image")
+    // Determine which model to use
+    const useRealisticVision = body.useRealisticVision || false
+    const modelVersion = useRealisticVision 
+      ? "6eb633a82ab3e7a4417d0af2e84e24b4b419c76f86f6e837824d02ae6845dc81" // Realistic Vision v3
+      : "15a3689ee13b0d2616e98820eca31d4c3abcd36672df6afce5cb6feb1d66087d" // Stable Diffusion img2img
+    
+    console.log(`Generating image with ${useRealisticVision ? 'Realistic Vision v3' : 'Stable Diffusion'} model`)
     
     // The image should be either a base64 data URI or a public URL that Replicate can access
-    // We'll check what we've received and ensure it's in the right format
     const imageData = body.image;
     console.log("Image data format check:", imageData.substring(0, 30) + "...")
     
-    // Build request body for Replicate API
-    const replicateBody = {
-      version: "15a3689ee13b0d2616e98820eca31d4c3abcd36672df6afce5cb6feb1d66087d",
-      input: {
-        image: imageData,
-        prompt: body.prompt || "Create a professional, high-quality, enhanced version of this image",
-        num_inference_steps: 25
+    // Build request body for Replicate API based on the selected model
+    let replicateBody;
+    
+    if (useRealisticVision) {
+      // Realistic Vision v3 model
+      replicateBody = {
+        version: modelVersion,
+        input: {
+          image: imageData,
+          prompt: body.prompt || "RAW photo, professional, high quality, realistic, photographic, 8k uhd, high quality, film grain",
+          seed: Math.floor(Math.random() * 1000000), // Random seed if not provided
+          strength: 0.45 // Moderate strength by default
+        }
+      }
+    } else {
+      // Stable Diffusion model
+      replicateBody = {
+        version: modelVersion,
+        input: {
+          image: imageData,
+          prompt: body.prompt || "Create a professional, high-quality, enhanced version of this image",
+          num_inference_steps: 25
+        }
       }
     }
 
-    console.log("Sending request to Replicate API")
+    console.log("Sending request to Replicate API with model:", modelVersion)
     const response = await fetch("https://api.replicate.com/v1/predictions", {
       method: "POST",
       headers: {
@@ -90,7 +111,8 @@ serve(async (req) => {
       JSON.stringify({ 
         prediction: {
           id: prediction.id,
-          status: prediction.status
+          status: prediction.status,
+          model: useRealisticVision ? "realistic-vision" : "stable-diffusion"
         } 
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

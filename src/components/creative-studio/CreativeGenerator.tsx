@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Sparkles, Loader2, Lightbulb, Save, ImageIcon, Check, AlertTriangle, Image } from "lucide-react";
+import { Sparkles, Loader2, Lightbulb, Save, ImageIcon, Check, AlertTriangle, Image, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -37,11 +37,13 @@ const CreativeGenerator = () => {
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [isGeneratingWithImage, setIsGeneratingWithImage] = useState<boolean>(false);
   const [isGeneratingFromImageAI, setIsGeneratingFromImageAI] = useState<boolean>(false);
+  const [isGeneratingRealistic, setIsGeneratingRealistic] = useState<boolean>(false);
   const [generatedCreative, setGeneratedCreative] = useState<GeneratedCreative | null>(null);
   const [replicatePredictionId, setReplicatePredictionId] = useState<string | null>(null);
   const [pollingInterval, setPollingInterval] = useState<number | null>(null);
   const [generationProgress, setGenerationProgress] = useState<number>(0);
   const [pollingCount, setPollingCount] = useState<number>(0);
+  const [currentModel, setCurrentModel] = useState<string | null>(null);
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -87,8 +89,10 @@ const CreativeGenerator = () => {
           setReplicatePredictionId(null);
           setIsGeneratingWithImage(false);
           setIsGeneratingFromImageAI(false);
+          setIsGeneratingRealistic(false);
           setGenerationProgress(0);
           setPollingCount(0);
+          setCurrentModel(null);
           toast.error("Tempo de espera excedido. Por favor, tente novamente.");
           return;
         }
@@ -127,7 +131,9 @@ const CreativeGenerator = () => {
             setGeneratedCreative(mockCreative);
             setIsGeneratingWithImage(false);
             setIsGeneratingFromImageAI(false);
-            toast.success("Criativo gerado com sucesso!");
+            setIsGeneratingRealistic(false);
+            setCurrentModel(null);
+            toast.success(`Criativo gerado com sucesso${currentModel === "realistic-vision" ? " (Realistic Vision)" : ""}!`);
 
             // Save to Supabase
             await saveGeneratedImageToSupabase(imageUrl);
@@ -135,6 +141,8 @@ const CreativeGenerator = () => {
             toast.error("A API retornou sucesso, mas nenhuma imagem foi gerada");
             setIsGeneratingWithImage(false);
             setIsGeneratingFromImageAI(false);
+            setIsGeneratingRealistic(false);
+            setCurrentModel(null);
             setGenerationProgress(0);
           }
         } else if (data.status === "failed") {
@@ -146,6 +154,8 @@ const CreativeGenerator = () => {
           setPollingCount(0);
           setIsGeneratingWithImage(false);
           setIsGeneratingFromImageAI(false);
+          setIsGeneratingRealistic(false);
+          setCurrentModel(null);
           setGenerationProgress(0);
           toast.error(`Falha ao gerar imagem: ${data.error || "Erro desconhecido"}`);
         } else if (data.status === "processing") {
@@ -172,6 +182,8 @@ const CreativeGenerator = () => {
         setPollingCount(0);
         setIsGeneratingWithImage(false);
         setIsGeneratingFromImageAI(false);
+        setIsGeneratingRealistic(false);
+        setCurrentModel(null);
         setGenerationProgress(0);
         toast.error("Erro ao verificar status da geração. Por favor, tente novamente.");
       }
@@ -182,7 +194,7 @@ const CreativeGenerator = () => {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [replicatePredictionId, supabase.functions, pollingCount]);
+  }, [replicatePredictionId, supabase.functions, pollingCount, currentModel]);
 
   const saveGeneratedImageToSupabase = async (imageUrl: string) => {
     if (!user) return;
@@ -420,6 +432,82 @@ const CreativeGenerator = () => {
       setGenerationProgress(0);
     }
   }, [uploadedImages, supabase.functions]);
+  
+  // New function to generate with Realistic Vision model
+  const generateWithRealisticVision = useCallback(async () => {
+    // Validation checks
+    if (uploadedImages.length === 0) {
+      toast.error("Por favor, faça upload de pelo menos uma imagem.");
+      return;
+    }
+
+    // Start generation process
+    setIsGeneratingRealistic(true);
+    setGenerationProgress(10);
+    setPollingCount(0);
+    setCurrentModel("realistic-vision");
+    toast.info("Gerando imagem realista com IA, pode levar alguns minutos...");
+
+    try {
+      // First convert the image to a data URI
+      const imageUrl = uploadedImages[0].url;
+      let imageData;
+      
+      // If it's already a data URI, use it directly
+      if (imageUrl.startsWith('data:')) {
+        imageData = imageUrl;
+      }
+      // If it's a blob URL (from local file upload), we need to convert it
+      else if (imageUrl.startsWith('blob:')) {
+        // Fetch the image as a blob
+        const response = await fetch(imageUrl);
+        const blob = await response.blob();
+        
+        // Convert to base64
+        imageData = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.readAsDataURL(blob);
+        });
+      }
+      // Otherwise assume it's a regular URL
+      else {
+        imageData = imageUrl;
+      }
+      
+      console.log("Sending image to Realistic Vision model with prompt:", prompt || "Default prompt");
+
+      // Call the Supabase Edge Function with the useRealisticVision flag
+      const { data, error } = await supabase.functions.invoke('generate-with-image', {
+        body: {
+          image: imageData,
+          prompt: prompt || undefined,
+          useRealisticVision: true
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message || "Erro ao iniciar geração com a IA");
+      }
+
+      if (!data || !data.prediction || !data.prediction.id) {
+        throw new Error("Não foi possível iniciar a geração. Tente novamente.");
+      }
+
+      // Store the prediction ID for polling
+      console.log("Generation started successfully, prediction ID:", data.prediction.id);
+      setReplicatePredictionId(data.prediction.id);
+      setGenerationProgress(20);
+      toast.info("Imagem realista sendo gerada, por favor aguarde...");
+      
+    } catch (error) {
+      console.error("Error starting realistic image generation:", error);
+      toast.error("Erro ao gerar imagem realista. Por favor, tente novamente.");
+      setIsGeneratingRealistic(false);
+      setCurrentModel(null);
+      setGenerationProgress(0);
+    }
+  }, [prompt, uploadedImages, supabase.functions]);
 
   const handleSaveCreative = useCallback(async () => {
     if (!generatedCreative || !user) return;
@@ -535,7 +623,7 @@ const CreativeGenerator = () => {
           <div className="flex flex-wrap gap-3">
             <Button 
               onClick={handleGenerateCreative} 
-              disabled={isGenerating || isGeneratingWithImage || isGeneratingFromImageAI || !prompt.trim()}
+              disabled={isGenerating || isGeneratingWithImage || isGeneratingFromImageAI || isGeneratingRealistic || !prompt.trim()}
               className="w-full sm:w-auto btn-pulse"
               size="lg"
             >
@@ -554,7 +642,7 @@ const CreativeGenerator = () => {
             
             <Button 
               onClick={generateCreativeWithImage} 
-              disabled={isGenerating || isGeneratingWithImage || isGeneratingFromImageAI || !prompt.trim() || uploadedImages.length === 0}
+              disabled={isGenerating || isGeneratingWithImage || isGeneratingFromImageAI || isGeneratingRealistic || !prompt.trim() || uploadedImages.length === 0}
               className="w-full sm:w-auto"
               size="lg"
               variant="secondary"
@@ -574,7 +662,7 @@ const CreativeGenerator = () => {
             
             <Button 
               onClick={generateCreativeFromImageAI} 
-              disabled={isGenerating || isGeneratingWithImage || isGeneratingFromImageAI || uploadedImages.length === 0}
+              disabled={isGenerating || isGeneratingWithImage || isGeneratingFromImageAI || isGeneratingRealistic || uploadedImages.length === 0}
               className="w-full sm:w-auto"
               size="lg"
               variant="outline"
@@ -587,20 +675,47 @@ const CreativeGenerator = () => {
               ) : (
                 <>
                   <Image className="mr-2 h-5 w-5" />
-                  Gerar com Imagem + IA
+                  Melhorar Imagem com IA
+                </>
+              )}
+            </Button>
+            
+            {/* New button for Realistic Vision model */}
+            <Button 
+              onClick={generateWithRealisticVision} 
+              disabled={isGenerating || isGeneratingWithImage || isGeneratingFromImageAI || isGeneratingRealistic || uploadedImages.length === 0}
+              className="w-full sm:w-auto"
+              size="lg"
+              variant="outline"
+              style={{ 
+                background: "linear-gradient(45deg, #8a2be2, #4169e1)",
+                color: "white"
+              }}
+            >
+              {isGeneratingRealistic ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Gerando Imagem Realista...
+                </>
+              ) : (
+                <>
+                  <Wand2 className="mr-2 h-5 w-5" />
+                  Gerar com Realistic Vision
                 </>
               )}
             </Button>
           </div>
           
-          {(isGeneratingWithImage || isGeneratingFromImageAI) && replicatePredictionId && (
+          {(isGeneratingWithImage || isGeneratingFromImageAI || isGeneratingRealistic) && replicatePredictionId && (
             <div className="mt-4 p-3 bg-secondary/20 rounded-md flex flex-col gap-2">
               <div className="flex items-center gap-2">
                 <Loader2 className="h-4 w-4 animate-spin text-primary" />
                 <span className="text-sm">
-                  {isGeneratingWithImage 
-                    ? `Processando imagem com IA... Isso pode levar alguns minutos. (${pollingCount}/60)`
-                    : `Transformando sua imagem com IA... Isso pode levar alguns minutos. (${pollingCount}/60)`}
+                  {isGeneratingRealistic
+                    ? `Criando imagem realista com IA... Isso pode levar alguns minutos. (${pollingCount}/60)`
+                    : isGeneratingWithImage 
+                      ? `Processando imagem com IA... Isso pode levar alguns minutos. (${pollingCount}/60)`
+                      : `Transformando sua imagem com IA... Isso pode levar alguns minutos. (${pollingCount}/60)`}
                 </span>
               </div>
               <Progress value={generationProgress} className="h-2" />
