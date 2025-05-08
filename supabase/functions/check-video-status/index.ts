@@ -29,11 +29,11 @@ serve(async (req) => {
     }
 
     try {
-      const response = await fetch(`https://api.runwayml.com/v1/image_to_video/${id}`, {
+      const response = await fetch(`https://api.runwayml.com/v1/generation/${id}`, {
         headers: {
           "Authorization": `Bearer ${RUNWAY_API_KEY}`,
           "Content-Type": "application/json",
-          "X-Runway-Version": "2024-11-06" // Versão especificada diretamente no cabeçalho
+          "Accept": "application/json"
         },
       });
 
