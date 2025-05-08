@@ -15,6 +15,7 @@ import Metrics from "./pages/Metrics";
 import Finance from "./pages/Finance";
 import AppLayout from "./components/layouts/AppLayout";
 import NotFound from "./pages/NotFound";
+import Index from "./pages/Index";
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
@@ -28,7 +29,8 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Login />} />
+            <Route path="/" element={<Index />} />
+            <Route path="/login" element={<Login />} />
             <Route path="/reset-password" element={<Login />} />
             
             {/* Protected routes */}
