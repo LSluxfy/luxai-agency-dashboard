@@ -51,17 +51,20 @@ serve(async (req) => {
     const imageData = body.image;
     console.log("Image data format check:", imageData.substring(0, 30) + "...")
     
+    // Use a different model that's better at image-to-image transformations
     // Build request body for Replicate API
     const replicateBody = {
-      version: "15a3689ee13b0d2616e98820eca31d4c3abcd36672df6afce5cb6feb1d66087d",
+      version: "a628ea0a2df7b38c0ee2afd9731b20a91b5d5380059e249c91c6e00f725429ee",
       input: {
         image: imageData,
-        num_inference_steps: 25
+        prompt: body.prompt || "Create a professional, high-quality, enhanced version of this image",
+        num_inference_steps: 30,
+        guidance_scale: 7.5
       }
     }
 
     // Call Replicate API to start the generation
-    console.log("Sending request to Replicate API...")
+    console.log("Sending request to Replicate API using model:", replicateBody.version)
     const response = await fetch("https://api.replicate.com/v1/predictions", {
       method: "POST",
       headers: {

@@ -41,6 +41,7 @@ const CreativeGenerator = () => {
   const [replicatePredictionId, setReplicatePredictionId] = useState<string | null>(null);
   const [pollingInterval, setPollingInterval] = useState<number | null>(null);
   const [generationProgress, setGenerationProgress] = useState<number>(0);
+  const [pollingCount, setPollingCount] = useState<number>(0);
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -73,8 +74,27 @@ const CreativeGenerator = () => {
   useEffect(() => {
     if (!replicatePredictionId) return;
 
+    const maxPollingAttempts = 60; // Set a limit to prevent infinite polling
+
     const interval = window.setInterval(async () => {
       try {
+        setPollingCount(prev => prev + 1);
+        
+        if (pollingCount > maxPollingAttempts) {
+          console.log("Reached maximum polling attempts");
+          clearInterval(interval);
+          setPollingInterval(null);
+          setReplicatePredictionId(null);
+          setIsGeneratingWithImage(false);
+          setIsGeneratingFromImageAI(false);
+          setGenerationProgress(0);
+          setPollingCount(0);
+          toast.error("Tempo de espera excedido. Por favor, tente novamente.");
+          return;
+        }
+
+        console.log(`Polling attempt ${pollingCount} for prediction ${replicatePredictionId}`);
+
         const { data, error } = await supabase.functions.invoke('generate-with-image', {
           body: { predictionId: replicatePredictionId }
         });
@@ -88,62 +108,81 @@ const CreativeGenerator = () => {
           clearInterval(interval);
           setPollingInterval(null);
           setReplicatePredictionId(null);
+          setPollingCount(0);
           setGenerationProgress(100);
 
           // Create creative from generated image
-          const imageUrl = data.output[0]; // Replicate returns an array of image URLs
-          
-          const mockCreative: GeneratedCreative = {
-            id: uuidv4(),
-            imageUrl: imageUrl,
-            title: "Título criado com base na sua imagem e prompt",
-            description: "Descrição gerada que combina elementos da sua imagem e texto",
-            cta: "COMPRAR AGORA",
-            createdAt: new Date().toISOString(),
-          };
+          if (data.output && data.output.length > 0) {
+            const imageUrl = data.output[0]; // Replicate returns an array of image URLs
             
-          setGeneratedCreative(mockCreative);
-          setIsGeneratingWithImage(false);
-          setIsGeneratingFromImageAI(false);
-          toast.success("Criativo gerado com sucesso!");
+            const mockCreative: GeneratedCreative = {
+              id: uuidv4(),
+              imageUrl: imageUrl,
+              title: "Título criado com base na sua imagem e prompt",
+              description: "Descrição gerada que combina elementos da sua imagem e texto",
+              cta: "COMPRAR AGORA",
+              createdAt: new Date().toISOString(),
+            };
+              
+            setGeneratedCreative(mockCreative);
+            setIsGeneratingWithImage(false);
+            setIsGeneratingFromImageAI(false);
+            toast.success("Criativo gerado com sucesso!");
 
-          // Save to Supabase
-          await saveGeneratedImageToSupabase(imageUrl);
-          
+            // Save to Supabase
+            await saveGeneratedImageToSupabase(imageUrl);
+          } else {
+            toast.error("A API retornou sucesso, mas nenhuma imagem foi gerada");
+            setIsGeneratingWithImage(false);
+            setIsGeneratingFromImageAI(false);
+            setGenerationProgress(0);
+          }
         } else if (data.status === "failed") {
           // Handle failure
+          console.error("Generation failed:", data.error);
           clearInterval(interval);
           setPollingInterval(null);
           setReplicatePredictionId(null);
+          setPollingCount(0);
           setIsGeneratingWithImage(false);
           setIsGeneratingFromImageAI(false);
           setGenerationProgress(0);
-          toast.error("Falha ao gerar imagem. Por favor, tente novamente.");
+          toast.error(`Falha ao gerar imagem: ${data.error || "Erro desconhecido"}`);
         } else if (data.status === "processing") {
           // Update progress for better UX
-          setGenerationProgress(prev => Math.min(prev + 10, 90));
+          setGenerationProgress(prev => {
+            const newProgress = Math.min(prev + 5, 90);
+            console.log(`Updating progress to ${newProgress}%`);
+            return newProgress;
+          });
         } else if (data.status === "starting") {
           // Update progress for starting status
-          setGenerationProgress(20);
+          console.log("Generation in starting state");
+          setGenerationProgress(30);
+        } else {
+          console.log(`Unknown status: ${data.status}`);
+          // For any other status, just update progress slightly
+          setGenerationProgress(prev => Math.min(prev + 2, 85));
         }
       } catch (error) {
         console.error("Error during polling:", error);
         clearInterval(interval);
         setPollingInterval(null);
         setReplicatePredictionId(null);
+        setPollingCount(0);
         setIsGeneratingWithImage(false);
         setIsGeneratingFromImageAI(false);
         setGenerationProgress(0);
         toast.error("Erro ao verificar status da geração. Por favor, tente novamente.");
       }
-    }, 2000); // Check every 2 seconds
+    }, 3000); // Check every 3 seconds
 
     setPollingInterval(interval);
 
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [replicatePredictionId, supabase.functions]);
+  }, [replicatePredictionId, supabase.functions, pollingCount]);
 
   const saveGeneratedImageToSupabase = async (imageUrl: string) => {
     if (!user) return;
@@ -248,6 +287,7 @@ const CreativeGenerator = () => {
     // Start generation process
     setIsGeneratingWithImage(true);
     setGenerationProgress(10);
+    setPollingCount(0);
     toast.info("Gerando criativo com imagem e IA, pode levar alguns minutos...");
 
     try {
@@ -277,13 +317,13 @@ const CreativeGenerator = () => {
         imageData = imageUrl;
       }
       
-      console.log("Sending image to Replicate, format:", 
-                 typeof imageData === 'string' ? imageData.substring(0, 30) + "..." : "Not a string");
+      console.log("Sending image to Replicate with prompt:", prompt);
 
       // Call the Supabase Edge Function to generate with Replicate
       const { data, error } = await supabase.functions.invoke('generate-with-image', {
         body: {
-          image: imageData
+          image: imageData,
+          prompt: prompt
         }
       });
 
@@ -296,7 +336,9 @@ const CreativeGenerator = () => {
       }
 
       // Store the prediction ID for polling
+      console.log("Generation started successfully, prediction ID:", data.prediction.id);
       setReplicatePredictionId(data.prediction.id);
+      setGenerationProgress(20);
       toast.info("Imagem sendo gerada, por favor aguarde...");
       
     } catch (error) {
@@ -318,6 +360,7 @@ const CreativeGenerator = () => {
     // Start generation process
     setIsGeneratingFromImageAI(true);
     setGenerationProgress(10);
+    setPollingCount(0);
     toast.info("Processando sua imagem com IA, pode levar alguns minutos...");
 
     try {
@@ -347,8 +390,7 @@ const CreativeGenerator = () => {
         imageData = imageUrl;
       }
       
-      console.log("Sending image to Replicate, format:", 
-                typeof imageData === 'string' ? imageData.substring(0, 30) + "..." : "Not a string");
+      console.log("Sending image to Replicate for enhancement");
 
       // Call the Supabase Edge Function to generate with Replicate
       const { data, error } = await supabase.functions.invoke('generate-with-image', {
@@ -366,6 +408,7 @@ const CreativeGenerator = () => {
       }
 
       // Store the prediction ID for polling
+      console.log("Processing started successfully, prediction ID:", data.prediction.id);
       setReplicatePredictionId(data.prediction.id);
       setGenerationProgress(20);
       toast.info("Imagem sendo processada, por favor aguarde...");
@@ -556,8 +599,8 @@ const CreativeGenerator = () => {
                 <Loader2 className="h-4 w-4 animate-spin text-primary" />
                 <span className="text-sm">
                   {isGeneratingWithImage 
-                    ? "Processando imagem com IA... Isso pode levar alguns minutos."
-                    : "Transformando sua imagem com IA... Isso pode levar alguns minutos."}
+                    ? `Processando imagem com IA... Isso pode levar alguns minutos. (${pollingCount}/60)`
+                    : `Transformando sua imagem com IA... Isso pode levar alguns minutos. (${pollingCount}/60)`}
                 </span>
               </div>
               <Progress value={generationProgress} className="h-2" />
