@@ -28,7 +28,7 @@ serve(async (req) => {
       throw new Error("ID da geração não fornecido");
     }
 
-    const response = await fetch(`https://api.runwayml.com/v1/imagem_para_vídeo/${id}`, {
+    const response = await fetch(`https://api.runwayml.com/v1/image-to-video/${id}`, {
       headers: {
         "Authorization": `Bearer ${RUNWAY_API_KEY}`,
         "X-Runway-Version": "2024-11-06",
