@@ -26,8 +26,17 @@ serve(async (req) => {
         },
       })
       
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`API Error (Status ${response.status}):`, errorText);
+        return new Response(
+          JSON.stringify({ error: `API Error: ${response.statusText}`, details: errorText }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: response.status }
+        );
+      }
+      
       const prediction = await response.json()
-      console.log("Status check response:", prediction)
+      console.log("Status check response:", JSON.stringify(prediction));
       
       return new Response(JSON.stringify(prediction), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -83,6 +92,8 @@ serve(async (req) => {
     }
 
     console.log("Sending request to Replicate API with model:", modelVersion)
+    console.log("Request body:", JSON.stringify(replicateBody))
+    
     const response = await fetch("https://api.replicate.com/v1/predictions", {
       method: "POST",
       headers: {
@@ -92,9 +103,18 @@ serve(async (req) => {
       body: JSON.stringify(replicateBody),
     })
 
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`API Error (Status ${response.status}):`, errorText);
+      return new Response(
+        JSON.stringify({ error: `API Error: ${response.statusText}`, details: errorText }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: response.status }
+      );
+    }
+
     // Parse the response
     const prediction = await response.json()
-    console.log("Initial prediction response:", prediction)
+    console.log("Initial prediction response:", JSON.stringify(prediction))
     
     if (prediction.error) {
       console.error("Error from Replicate API:", prediction.error)
