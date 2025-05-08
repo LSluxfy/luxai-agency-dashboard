@@ -91,8 +91,12 @@ const Sidebar = () => {
           <TooltipTrigger asChild>
             <NavLink
               to="/"
-              className="flex items-center gap-3 px-3 py-2 rounded-md transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-sidebar-foreground"
-              style={{ justifyContent: collapsed ? "center" : "flex-start" }}
+              className={cn(
+                "flex items-center gap-3 px-3 py-2 rounded-md transition-all",
+                "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                "text-sidebar-foreground",
+                collapsed ? "justify-center" : ""
+              )}
             >
               <LogOut size={20} />
               {!collapsed && <span>Sair</span>}
