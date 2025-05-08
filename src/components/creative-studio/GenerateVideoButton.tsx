@@ -1,99 +1,145 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
+import { Loader2, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { Progress } from "@/components/ui/progress";
 
 export function GenerateVideoButton({ prompt }: { prompt: string }) {
   const [loading, setLoading] = useState(false);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [predictionId, setPredictionId] = useState<string | null>(null);
+  const [progress, setProgress] = useState<number>(0);
+  const [statusCheckInterval, setStatusCheckInterval] = useState<number | null>(null);
+  const [checkCount, setCheckCount] = useState<number>(0);
+
+  // Limpar o intervalo quando o componente é desmontado
+  useEffect(() => {
+    return () => {
+      if (statusCheckInterval) {
+        clearInterval(statusCheckInterval);
+      }
+    };
+  }, [statusCheckInterval]);
+
+  // Gerenciar a verificação de status quando temos um ID de previsão
+  useEffect(() => {
+    if (!predictionId) return;
+    
+    const maxChecks = 40; // Cerca de 2 minutos (3s * 40)
+    
+    // Iniciar a verificação a cada 3 segundos
+    const interval = window.setInterval(async () => {
+      // Incrementar o contador
+      setCheckCount(prev => {
+        const newCount = prev + 1;
+        
+        // Atualizar o progresso (0-95%)
+        const newProgress = Math.min(5 + (newCount * 90 / maxChecks), 95);
+        setProgress(newProgress);
+        
+        // Se atingir o número máximo de verificações, parar
+        if (newCount >= maxChecks) {
+          clearInterval(interval);
+          setStatusCheckInterval(null);
+          setError("Tempo limite excedido para gerar o vídeo.");
+          toast.error("Tempo limite excedido. Por favor, tente novamente.");
+          setPredictionId(null);
+        }
+        
+        return newCount;
+      });
+      
+      try {
+        // Verificar o status da geração do vídeo
+        console.log(`Verificando status do vídeo (tentativa ${checkCount + 1})...`);
+        
+        const { data, error } = await supabase.functions.invoke("check-video-status", {
+          body: { id: predictionId }
+        });
+        
+        if (error) throw error;
+        
+        console.log("Resposta da verificação de status:", data);
+        
+        if (data.status === "succeeded") {
+          // Vídeo gerado com sucesso
+          clearInterval(interval);
+          setStatusCheckInterval(null);
+          setPredictionId(null);
+          setProgress(100);
+          setLoading(false);
+          
+          const output = data.output;
+          if (output && typeof output === "string") {
+            setVideoUrl(output);
+            toast.success("Vídeo gerado com sucesso!");
+          } else if (Array.isArray(output) && output.length > 0) {
+            setVideoUrl(output[0]);
+            toast.success("Vídeo gerado com sucesso!");
+          } else {
+            throw new Error("Formato de output inválido: " + JSON.stringify(output));
+          }
+        } else if (data.status === "failed") {
+          // Falha na geração
+          clearInterval(interval);
+          setStatusCheckInterval(null);
+          setPredictionId(null);
+          setLoading(false);
+          setProgress(0);
+          throw new Error(`Falha na geração: ${data.error || "Erro desconhecido"}`);
+        }
+      } catch (err) {
+        console.error("Erro ao verificar o status:", err);
+        // Continuamos verificando mesmo se houver erro, a menos que seja o erro final
+        if (checkCount >= maxChecks) {
+          clearInterval(interval);
+          setStatusCheckInterval(null);
+          setPredictionId(null);
+          setLoading(false);
+          setError("Erro ao verificar o status da geração do vídeo.");
+          toast.error("Erro ao verificar o status. Por favor, tente novamente.");
+        }
+      }
+    }, 3000);
+    
+    setStatusCheckInterval(interval);
+    
+    // Limpar o intervalo quando o componente é desmontado
+    return () => clearInterval(interval);
+  }, [predictionId]);
 
   const handleGenerateVideo = async () => {
     setLoading(true);
     setError(null);
-    toast("Gerando vídeo com IA...");
+    setVideoUrl(null);
+    setPredictionId(null);
+    setProgress(5); // Iniciar com 5% para feedback visual
+    toast.info("Iniciando geração de vídeo com IA...");
 
     try {
       console.log("Enviando requisição para gerar vídeo com o prompt:", prompt);
       
-      const response = await fetch("https://api.replicate.com/v1/predictions", {
-        method: "POST",
-        headers: {
-          Authorization: "Bearer r8_D9h5KighG1MjcYbcDKlxc6jxJO0cABt4eJzaE",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          version: "cb23e6b8742a378bd6cef78d3113550fba25abec6a869d8f43e43b30de4b488b", // ID da versão do modelo video-01
-          input: {
-            prompt: prompt || "a woman is walking through a busy Tokyo street at night, she is wearing dark sunglasses",
-          },
-        }),
+      const { data, error } = await supabase.functions.invoke("generate-video", {
+        body: { prompt }
       });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Erro na resposta da API:", response.status, errorText);
-        throw new Error(`API respondeu com status ${response.status}: ${errorText}`);
-      }
-
-      const result = await response.json();
-      console.log("Resposta completa da API:", result);
       
-      // O Replicate pode não retornar o output imediatamente, verificando se é uma predição em andamento
-      if (result.status === "starting" || result.status === "processing") {
-        toast.info("Geração de vídeo iniciada, aguarde...");
+      if (error) throw new Error(error.message || "Erro ao iniciar a geração do vídeo");
+      
+      console.log("Resposta da função generate-video:", data);
+      
+      if (data.id) {
+        // Temos um ID de previsão para acompanhar
+        setPredictionId(data.id);
+        toast.info("Geração de vídeo iniciada, por favor aguarde...");
+      } else if (data.output) {
+        // Resultado disponível imediatamente (improvável, mas possível)
+        setProgress(100);
+        setLoading(false);
         
-        // Verificar status da geração a cada 3 segundos
-        let pollCount = 0;
-        const maxPolls = 40; // Cerca de 2 minutos de tentativas
-        
-        const pollForResult = async () => {
-          if (pollCount >= maxPolls) {
-            throw new Error("Tempo limite excedido para gerar o vídeo.");
-          }
-          
-          pollCount++;
-          console.log(`Verificando status do vídeo (tentativa ${pollCount})...`);
-          
-          const pollResponse = await fetch(`https://api.replicate.com/v1/predictions/${result.id}`, {
-            headers: {
-              Authorization: "Bearer r8_D9h5KighG1MjcYbcDKlxc6jxJO0cABt4eJzaE",
-              "Content-Type": "application/json",
-            },
-          });
-          
-          const pollResult = await pollResponse.json();
-          console.log("Status atual:", pollResult.status);
-          
-          if (pollResult.status === "succeeded") {
-            const output = pollResult.output;
-            console.log("Vídeo gerado com sucesso:", output);
-            
-            if (output && typeof output === "string") {
-              setVideoUrl(output);
-              toast.success("Vídeo gerado com sucesso!");
-              return;
-            } else if (Array.isArray(output) && output.length > 0) {
-              setVideoUrl(output[0]);
-              toast.success("Vídeo gerado com sucesso!");
-              return;
-            } else {
-              throw new Error("Formato de output inválido: " + JSON.stringify(output));
-            }
-          } else if (pollResult.status === "failed") {
-            throw new Error(`Falha na geração: ${pollResult.error || "Erro desconhecido"}`);
-          } else {
-            // Ainda processando, verificar novamente após 3 segundos
-            setTimeout(pollForResult, 3000);
-          }
-        };
-        
-        await pollForResult();
-      } else if (result.output) {
-        // Se o resultado já estiver disponível imediatamente
-        const output = result.output;
-        
+        const output = data.output;
         if (typeof output === "string") {
           setVideoUrl(output);
         } else if (Array.isArray(output) && output.length > 0) {
@@ -104,15 +150,16 @@ export function GenerateVideoButton({ prompt }: { prompt: string }) {
         
         toast.success("Vídeo gerado com sucesso!");
       } else {
-        throw new Error("Resposta inesperada da API: " + JSON.stringify(result));
+        // Resposta inesperada
+        throw new Error("Resposta inesperada da API: " + JSON.stringify(data));
       }
     } catch (err: any) {
       console.error("Erro ao gerar vídeo:", err);
       const errorMessage = err.message || "Erro desconhecido ao gerar o vídeo";
       setError(errorMessage);
-      toast.error(`Erro ao gerar o vídeo: ${errorMessage}`);
-    } finally {
       setLoading(false);
+      setProgress(0);
+      toast.error(`Erro ao gerar o vídeo: ${errorMessage}`);
     }
   };
 
@@ -129,6 +176,15 @@ export function GenerateVideoButton({ prompt }: { prompt: string }) {
         )}
       </Button>
 
+      {loading && predictionId && (
+        <div className="mt-2">
+          <Progress value={progress} className="h-2" />
+          <p className="text-sm text-muted-foreground mt-1">
+            Gerando vídeo ({progress.toFixed(0)}%)... Isso pode levar alguns minutos.
+          </p>
+        </div>
+      )}
+
       {error && (
         <div className="p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm">
           <strong>Erro:</strong> {error}
@@ -142,8 +198,10 @@ export function GenerateVideoButton({ prompt }: { prompt: string }) {
             controls
             className="mt-4 w-full rounded-lg shadow-lg"
           />
-          <p className="text-xs text-gray-500 mt-1">
-            Se o vídeo não carregar, <a href={videoUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">clique aqui para abrir em uma nova aba</a>
+          <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+            Se o vídeo não carregar, <a href={videoUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 underline flex items-center">
+              clique aqui para abrir em uma nova aba <ExternalLink className="h-3 w-3" />
+            </a>
           </p>
         </div>
       )}

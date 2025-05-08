@@ -1,1 +1,9 @@
+
 project_id = "lgblicqyurcttmlguwsd"
+
+[functions]
+[functions.generate-video]
+verify_jwt = false
+
+[functions.check-video-status]
+verify_jwt = false
