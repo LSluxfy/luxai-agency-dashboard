@@ -240,6 +240,7 @@ const CreativeGenerator = () => {
     }
   }, [prompt, uploadedImages, supabase.functions]);
 
+  // Updated to handle image data properly
   const generateCreativeWithImage = useCallback(async () => {
     // Validation checks
     if (!prompt.trim()) {
@@ -258,11 +259,39 @@ const CreativeGenerator = () => {
     toast.info("Gerando criativo com imagem e IA, pode levar alguns minutos...");
 
     try {
+      // First convert the image to a data URI
+      const imageUrl = uploadedImages[0].url;
+      let imageData;
+      
+      // If it's already a data URI, use it directly
+      if (imageUrl.startsWith('data:')) {
+        imageData = imageUrl;
+      }
+      // If it's a blob URL (from local file upload), we need to convert it
+      else if (imageUrl.startsWith('blob:')) {
+        // Fetch the image as a blob
+        const response = await fetch(imageUrl);
+        const blob = await response.blob();
+        
+        // Convert to base64
+        imageData = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.readAsDataURL(blob);
+        });
+      }
+      // Otherwise assume it's a regular URL
+      else {
+        imageData = imageUrl;
+      }
+      
+      console.log("Sending image to Replicate, format:", 
+                 typeof imageData === 'string' ? imageData.substring(0, 30) + "..." : "Not a string");
+
       // Call the Supabase Edge Function to generate with Replicate
       const { data, error } = await supabase.functions.invoke('generate-with-image', {
         body: {
-          prompt: prompt,
-          image: uploadedImages[0].url // Use the first uploaded image
+          image: imageData
         }
       });
 
@@ -286,6 +315,7 @@ const CreativeGenerator = () => {
     }
   }, [prompt, uploadedImages, supabase.functions]);
 
+  // Updated to handle image data properly
   const generateCreativeFromImageAI = useCallback(async () => {
     // Validation checks
     if (uploadedImages.length === 0) {
@@ -299,10 +329,39 @@ const CreativeGenerator = () => {
     toast.info("Processando sua imagem com IA, pode levar alguns minutos...");
 
     try {
+      // First convert the image to a data URI
+      const imageUrl = uploadedImages[0].url;
+      let imageData;
+      
+      // If it's already a data URI, use it directly
+      if (imageUrl.startsWith('data:')) {
+        imageData = imageUrl;
+      }
+      // If it's a blob URL (from local file upload), we need to convert it
+      else if (imageUrl.startsWith('blob:')) {
+        // Fetch the image as a blob
+        const response = await fetch(imageUrl);
+        const blob = await response.blob();
+        
+        // Convert to base64
+        imageData = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.readAsDataURL(blob);
+        });
+      }
+      // Otherwise assume it's a regular URL
+      else {
+        imageData = imageUrl;
+      }
+      
+      console.log("Sending image to Replicate, format:", 
+                typeof imageData === 'string' ? imageData.substring(0, 30) + "..." : "Not a string");
+
       // Call the Supabase Edge Function to generate with Replicate
       const { data, error } = await supabase.functions.invoke('generate-with-image', {
         body: {
-          image: uploadedImages[0].url // Only need the image for this model
+          image: imageData
         }
       });
 
@@ -398,6 +457,7 @@ const CreativeGenerator = () => {
   
   return (
     <div className="space-y-6">
+      {/* Image upload card */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -418,6 +478,7 @@ const CreativeGenerator = () => {
         </CardContent>
       </Card>
 
+      {/* Prompt card */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -513,8 +574,10 @@ const CreativeGenerator = () => {
         </CardContent>
       </Card>
 
+      {/* Generated creative display */}
       {generatedCreative && (
         <>
+          {/* Strategy card */}
           {generatedCreative.strategy && (
             <Card className="border-primary/20 bg-primary/5">
               <CardHeader>
@@ -539,6 +602,7 @@ const CreativeGenerator = () => {
             </Card>
           )}
 
+          {/* Creative preview */}
           <CreativePreview 
             creative={generatedCreative} 
             onSave={handleSaveCreative}
