@@ -33,7 +33,7 @@ serve(async (req) => {
         headers: {
           "Authorization": `Bearer ${RUNWAY_API_KEY}`,
           "Content-Type": "application/json",
-          "X-Runway-Version": "2024-03-01"
+          "X-Runway-Version": "2024-11-06"
         },
       });
 
@@ -58,7 +58,9 @@ serve(async (req) => {
       
       if (result.status === "COMPLETED" || result.status === "completed") {
         status = "succeeded";
-        output = result.video_url || result.output?.url || result.video;
+        // Com a versão 2024-11-06, o campo pode ter uma estrutura diferente
+        output = result.video || result.video_url || result.output || 
+                (result.videos && result.videos.length > 0 ? result.videos[0] : null);
       } else if (result.status === "FAILED" || result.status === "failed") {
         status = "failed";
       } else if (result.status === "PROCESSING" || result.status === "QUEUED" || result.status === "processing" || result.status === "queued") {
@@ -88,7 +90,7 @@ serve(async (req) => {
       }),
       { 
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
+        headers: { ...corsHeaders, "Content-Type": "application/json" } 
       }
     );
   }
