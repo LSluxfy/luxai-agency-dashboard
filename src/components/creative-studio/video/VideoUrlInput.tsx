@@ -2,7 +2,7 @@
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { InfoCircle } from "lucide-react";
+import { Info } from "lucide-react";
 
 interface VideoUrlInputProps {
   imageUrl: string;
@@ -22,7 +22,7 @@ const VideoUrlInput = ({ imageUrl, setImageUrl }: VideoUrlInputProps) => {
       />
       
       <Alert className="bg-blue-50 border-blue-200">
-        <InfoCircle className="h-4 w-4 text-blue-500" />
+        <Info className="h-4 w-4 text-blue-500" />
         <AlertTitle className="text-blue-700 text-sm font-medium">Requisitos para o URL da imagem</AlertTitle>
         <AlertDescription className="text-blue-600 text-xs">
           • A imagem deve estar publicamente acessível via HTTPS<br />
