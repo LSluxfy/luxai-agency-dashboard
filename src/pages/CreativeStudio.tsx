@@ -23,14 +23,16 @@ const CreativeStudio = () => {
         </p>
         <p className="text-muted-foreground mt-1 text-sm">
           <span className="bg-gradient-to-r from-purple-500 to-blue-500 text-white px-2 py-0.5 rounded-sm">Novo!</span>{" "}
-          Experimente o modelo Realistic Vision para imagens ultra-realistas.
+          Modelo Realistic Vision V3 para transformação de imagens ultra-realistas.
         </p>
-        {/* Added troubleshooting hint for Replicate API */}
+        {/* Troubleshooting hint for Replicate API */}
         <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-md">
-          <h3 className="text-amber-800 font-medium">Dica para geração de imagens</h3>
+          <h3 className="text-amber-800 font-medium">Dicas para melhores resultados</h3>
           <p className="text-amber-700 text-sm">
-            Para melhores resultados com o modelo Realistic Vision, recomendamos imagens claras e com boa qualidade. 
-            Se encontrar problemas ao gerar imagens, tente novamente com outra imagem ou ajuste o prompt.
+            • Use imagens claras e com boa qualidade para melhores resultados<br/>
+            • O parâmetro "strength" define quanto da imagem original será mantida (0.21 = preserva mais detalhes)<br/>
+            • O prompt deve descrever claramente o resultado desejado<br/>
+            • Se a imagem não for gerada, verifique os logs e tente novamente
           </p>
         </div>
       </header>

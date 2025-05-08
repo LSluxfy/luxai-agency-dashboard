@@ -54,45 +54,35 @@ serve(async (req) => {
     }
 
     // Determine which model to use
-    const useRealisticVision = body.useRealisticVision || false
-    const modelVersion = useRealisticVision 
-      ? "6eb633a82ab3e7a4417d0af2e84e24b4b419c76f86f6e837824d02ae6845dc81" // Realistic Vision v3
-      : "15a3689ee13b0d2616e98820eca31d4c3abcd36672df6afce5cb6feb1d66087d" // Stable Diffusion img2img
+    const useRealisticVision = body.useRealisticVision ?? true // Default to Realistic Vision
+    const modelVersion = "6eb633a82ab3e7a4417d0af2e84e24b4b419c76f86f6e837824d02ae6845dc81" // Realistic Vision v3
     
-    console.log(`Generating image with ${useRealisticVision ? 'Realistic Vision v3' : 'Stable Diffusion'} model`)
+    console.log(`Generating image with Realistic Vision v3 model`)
     
     // The image should be either a base64 data URI or a public URL that Replicate can access
     const imageData = body.image;
     console.log("Image data format check:", imageData.substring(0, 30) + "...")
     
-    // Build request body for Replicate API based on the selected model
-    let replicateBody;
-    
-    if (useRealisticVision) {
-      // Realistic Vision v3 model
-      replicateBody = {
-        version: modelVersion,
-        input: {
-          image: imageData,
-          prompt: body.prompt || "RAW photo, professional, high quality, realistic, photographic, 8k uhd, high quality, film grain",
-          seed: Math.floor(Math.random() * 1000000), // Random seed if not provided
-          strength: 0.45 // Moderate strength by default
-        }
-      }
-    } else {
-      // Stable Diffusion model
-      replicateBody = {
-        version: modelVersion,
-        input: {
-          image: imageData,
-          prompt: body.prompt || "Create a professional, high-quality, enhanced version of this image",
-          num_inference_steps: 25
-        }
+    // Build request body for Realistic Vision v3 model
+    const replicateBody = {
+      version: modelVersion,
+      input: {
+        image: imageData,
+        prompt: body.prompt || "Foto profissional do produto em fundo branco, luz natural, alta qualidade, 4K",
+        seed: body.seed || Math.floor(Math.random() * 1000000), // Random seed if not provided
+        strength: body.strength || 0.21, // Lower strength to preserve more of original image
+        negative_prompt: "blurry, low quality, distorted"
       }
     }
 
     console.log("Sending request to Replicate API with model:", modelVersion)
-    console.log("Request body:", JSON.stringify(replicateBody))
+    console.log("Request body:", JSON.stringify({
+      ...replicateBody,
+      input: {
+        ...replicateBody.input,
+        image: replicateBody.input.image.substring(0, 30) + "..." // Truncate the image data for logging
+      }
+    }))
     
     const response = await fetch("https://api.replicate.com/v1/predictions", {
       method: "POST",
@@ -132,7 +122,7 @@ serve(async (req) => {
         prediction: {
           id: prediction.id,
           status: prediction.status,
-          model: useRealisticVision ? "realistic-vision" : "stable-diffusion"
+          model: "realistic-vision"
         } 
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
