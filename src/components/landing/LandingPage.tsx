@@ -5,6 +5,7 @@ import Header from "./Header";
 import HeroSection from "./HeroSection";
 import HowItWorks from "./HowItWorks";
 import Benefits from "./Benefits";
+import CreativeStudioSection from "./CreativeStudioSection";
 import Pricing from "./Pricing";
 import Testimonials from "./Testimonials";
 import Faq from "./Faq";
@@ -44,6 +45,7 @@ const LandingPage = () => {
         <HeroSection onStartTrial={handleStartTrial} onWatchDemo={() => scrollToSection("how-it-works")} />
         <HowItWorks />
         <Benefits />
+        <CreativeStudioSection />
         <Pricing onSelect={handleStartTrial} />
         <Testimonials />
         <Faq />
