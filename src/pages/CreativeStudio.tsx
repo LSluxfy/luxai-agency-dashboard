@@ -4,12 +4,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import CreativeGenerator from "@/components/creative-studio/CreativeGenerator";
 import CreativeGallery from "@/components/creative-studio/CreativeGallery";
-import { GenerateImageButton } from "@/components/creative-studio/GenerateImageButton";
+import SdxlGenerator from "@/components/creative-studio/SdxlGenerator";
 import { GenerateWanVideoButton } from "@/components/creative-studio/GenerateWanVideoButton";
 
 const CreativeStudio = () => {
   const [activeTab, setActiveTab] = useState<string>("create");
-  const [sdxlPrompt, setSdxlPrompt] = useState<string>("Imagem criativa de produto em estilo fotográfico profissional");
   
   const handleTabChange = useCallback((value: string) => {
     setActiveTab(value);
@@ -57,22 +56,7 @@ const CreativeStudio = () => {
         <TabsContent value="sdxl" className="mt-0">
           <Card>
             <CardContent className="pt-6">
-              <div className="mb-4">
-                <h2 className="text-xl font-bold mb-3">Gerar Imagem com SDXL</h2>
-                <p className="text-muted-foreground mb-4">
-                  Use o modelo SDXL da Stability AI para gerar imagens de alta qualidade a partir de descrições textuais.
-                </p>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1">Descrição da imagem:</label>
-                  <textarea 
-                    className="w-full h-24 p-2 border rounded-md" 
-                    value={sdxlPrompt}
-                    onChange={(e) => setSdxlPrompt(e.target.value)}
-                    placeholder="Descreva a imagem que você deseja gerar..."
-                  ></textarea>
-                </div>
-                <GenerateImageButton prompt={sdxlPrompt} />
-              </div>
+              <SdxlGenerator />
             </CardContent>
           </Card>
         </TabsContent>

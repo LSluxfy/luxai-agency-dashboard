@@ -59,6 +59,9 @@ serve(async (req) => {
     if (body.directGeneration && body.prompt) {
       console.log("Generating image directly with SDXL model")
       
+      // Updated to the latest version of SDXL
+      const sdxlModelVersion = "39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b"
+      
       const sdxlResponse = await fetch("https://api.replicate.com/v1/predictions", {
         method: "POST",
         headers: {
@@ -66,14 +69,21 @@ serve(async (req) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          version: "7762fd07cf82c948538e41f63f77d685e02b063e37e496e96eefd46c929f9bdc", // SDXL model
+          version: sdxlModelVersion,
           input: {
-            width: 768,
-            height: 768,
+            width: 1024,
+            height: 1024,
             prompt: body.prompt,
             refine: "expert_ensemble_refiner",
+            scheduler: "K_EULER",
+            lora_scale: 0.6,
+            num_outputs: 1,
+            guidance_scale: 7.5,
             apply_watermark: false,
-            num_inference_steps: 25,
+            high_noise_frac: 0.8,
+            negative_prompt: "blurry, bad quality, distorted image, disfigured, low resolution",
+            prompt_strength: 0.8,
+            num_inference_steps: 30,
           },
         }),
       });
@@ -126,7 +136,7 @@ serve(async (req) => {
         image: imageData,
         prompt: body.prompt || "Foto profissional do produto em fundo branco, luz natural, alta qualidade, 4K",
         seed: seed,
-        strength: body.strength || 0.21, // Lower strength to preserve more of original image
+        strength: body.strength || 0.21, // Allow custom strength from the request
         negative_prompt: "blurry, low quality, distorted"
       }
     }
