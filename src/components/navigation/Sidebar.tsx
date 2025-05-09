@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -13,7 +14,9 @@ import {
   BarChart,
   CreditCard,
   ChevronsUpDown,
-  BrainCircuit
+  BrainCircuit,
+  MessageSquare,
+  Files
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -75,8 +78,8 @@ const Sidebar = () => {
     { icon: Facebook, label: "Conexão com Facebook", to: "/facebook" },
     { icon: BarChart, label: "Métricas", to: "/metrics" },
     { icon: CreditCard, label: "Financeiro", to: "/finance" },
-    { icon: FolderOpen, label: "Meus Arquivos", to: "/dashboard?tab=files" },
-    { icon: LifeBuoy, label: "Suporte", to: "/dashboard?tab=support" },
+    { icon: Files, label: "Meus Arquivos", to: "/dashboard?tab=files" },
+    { icon: MessageSquare, label: "Suporte", to: "/dashboard?tab=support" },
   ];
 
   return (

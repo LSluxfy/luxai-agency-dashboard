@@ -14,6 +14,8 @@ import CreativeStudio from "./pages/CreativeStudio";
 import Metrics from "./pages/Metrics";
 import Finance from "./pages/Finance";
 import AssessorAI from "./pages/AssessorAI";
+import MyFiles from "./pages/MyFiles";
+import Support from "./pages/Support";
 import AppLayout from "./components/layouts/AppLayout";
 import NotFound from "./pages/NotFound";
 import Index from "./pages/Index";
@@ -45,6 +47,8 @@ const App = () => (
               <Route path="/metrics" element={<Metrics />} />
               <Route path="/finance" element={<Finance />} />
               <Route path="/assessor-ia" element={<AssessorAI />} />
+              <Route path="/my-files" element={<MyFiles />} />
+              <Route path="/support" element={<Support />} />
             </Route>
             
             <Route path="*" element={<NotFound />} />
