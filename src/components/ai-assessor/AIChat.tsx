@@ -47,6 +47,7 @@ const AIChat = ({ userId, onConversationAdded, isWidget = false, suggestedPrompt
     
     try {
       setIsLoading(true);
+      console.log("Enviando solicitação para a função ask-ia com userId:", userId);
       
       const response = await fetch('https://lgblicqyurcttmlguwsd.supabase.co/functions/v1/ask-ia', {
         method: 'POST',
@@ -66,6 +67,7 @@ const AIChat = ({ userId, onConversationAdded, isWidget = false, suggestedPrompt
       }
       
       const data = await response.json();
+      console.log("Resposta recebida:", data);
       setResponse(data.response);
       
       if (onConversationAdded) {
