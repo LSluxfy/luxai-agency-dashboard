@@ -65,7 +65,7 @@ serve(async (req) => {
         messages: [
           { 
             role: 'system', 
-            content: `Você é um acessor inteligente de marketing e estratégia digital. 
+            content: `Você é um assessor inteligente de marketing e estratégia digital. 
             Responda com objetividade, criatividade e foco em resultados.
             Use o tom ${tone} e responda em ${language}.`
           },

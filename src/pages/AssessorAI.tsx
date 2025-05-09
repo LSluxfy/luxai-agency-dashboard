@@ -63,7 +63,7 @@ const AssessorAI = () => {
       }
 
       console.log("Conversations fetched:", data?.length);
-      setConversations(data as AIConversation[]);
+      setConversations(data as AIConversation[] || []);
     } catch (error) {
       console.error("Erro ao buscar conversas:", error);
       toast.error("Erro ao carregar conversas");
