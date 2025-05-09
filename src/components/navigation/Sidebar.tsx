@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -78,8 +77,8 @@ const Sidebar = () => {
     { icon: Facebook, label: "Conexão com Facebook", to: "/facebook" },
     { icon: BarChart, label: "Métricas", to: "/metrics" },
     { icon: CreditCard, label: "Financeiro", to: "/finance" },
-    { icon: Files, label: "Meus Arquivos", to: "/dashboard?tab=files" },
-    { icon: MessageSquare, label: "Suporte", to: "/dashboard?tab=support" },
+    { icon: Files, label: "Meus Arquivos", to: "/my-files" },
+    { icon: MessageSquare, label: "Suporte", to: "/support" },
   ];
 
   return (

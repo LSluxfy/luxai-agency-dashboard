@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -228,7 +227,7 @@ const MyFiles = () => {
                 <SelectValue placeholder="Tipo de arquivo" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos os tipos</SelectItem>
+                <SelectItem value="all-types">Todos os tipos</SelectItem>
                 {uniqueFileTypes.map(type => (
                   <SelectItem key={type} value={type}>
                     {type.split('/')[1]?.toUpperCase() || type}
@@ -242,7 +241,7 @@ const MyFiles = () => {
                 <SelectValue placeholder="Origem" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todas as origens</SelectItem>
+                <SelectItem value="all-sources">Todas as origens</SelectItem>
                 {uniqueSourceTags.map(tag => (
                   <SelectItem key={tag} value={tag}>{tag}</SelectItem>
                 ))}
