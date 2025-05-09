@@ -25,27 +25,41 @@ const AssessorAI = () => {
     try {
       setIsLoading(true);
       
-      // Use a tipagem mais genérica para evitar o erro de tipo
-      const { data, error } = await supabase
-        .from('ia_conversations')
+      // Using "any" type to bypass the TypeScript restriction since the table isn't in the auto-generated types
+      const response = await supabase
+        .from('ia_conversations' as any)
         .select('*')
         .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .then(result => {
-          // Adicionar tipagem explícita ao resultado
-          return {
-            data: result.data as AIConversation[] | null,
-            error: result.error
-          };
-        });
+        .order('created_at', { ascending: false });
+        
+      if (selectedFilter) {
+        const filteredResponse = await supabase
+          .from('ia_conversations' as any)
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('type', selectedFilter)
+          .order('created_at', { ascending: false });
+          
+        if (filteredResponse.error) {
+          console.error("Erro ao filtrar conversas:", filteredResponse.error);
+          toast.error("Erro ao filtrar conversas");
+        } else {
+          // Cast the data to the proper type
+          setConversations(filteredResponse.data as unknown as AIConversation[]);
+        }
+        
+        setIsLoading(false);
+        return;
+      }
 
-      if (error) {
-        console.error("Erro ao buscar conversas:", error);
+      if (response.error) {
+        console.error("Erro ao buscar conversas:", response.error);
         toast.error("Erro ao carregar conversas");
         return;
       }
 
-      setConversations(data || []);
+      // Cast the data to the proper type
+      setConversations(response.data as unknown as AIConversation[]);
     } catch (error) {
       console.error("Erro ao buscar conversas:", error);
       toast.error("Erro ao carregar conversas");
