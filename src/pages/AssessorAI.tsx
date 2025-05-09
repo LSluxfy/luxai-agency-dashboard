@@ -146,6 +146,45 @@ const AssessorAI = () => {
               Histórico de Conversas
             </TabsTrigger>
           </TabsList>
+          
+          <TabsContent value="chat" className="mt-2">
+            {showNewChat && user && (
+              <AIChat 
+                userId={user.id}
+                onConversationAdded={handleConversationAdded}
+                suggestedPrompt={suggestedPrompt}
+              />
+            )}
+          </TabsContent>
+
+          <TabsContent value="history" className="mt-2">
+            <div className="bg-card rounded-lg border p-4">
+              <div className="flex flex-col sm:flex-row gap-4 mb-4 items-start">
+                <div className="w-full sm:flex-1">
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      type="search"
+                      placeholder="Buscar nas conversas..."
+                      className="pl-8"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+              
+              <AIConversationFilters onFilterChange={handleFilterChange} />
+              <AIConversationHistory 
+                conversations={conversations}
+                isLoading={isLoading}
+                onConversationSelect={() => {
+                  // Implementação futura: carregar conversa completa
+                  toast.info("Funcionalidade em desenvolvimento");
+                }}
+              />
+            </div>
+          </TabsContent>
         </Tabs>
         
         <Button onClick={handleNewChat} className="ml-4">
@@ -153,45 +192,6 @@ const AssessorAI = () => {
           Nova Conversa
         </Button>
       </div>
-
-      <TabsContent value="chat" className="mt-2">
-        {showNewChat && user && (
-          <AIChat 
-            userId={user.id}
-            onConversationAdded={handleConversationAdded}
-            suggestedPrompt={suggestedPrompt}
-          />
-        )}
-      </TabsContent>
-
-      <TabsContent value="history" className="mt-2">
-        <div className="bg-card rounded-lg border p-4">
-          <div className="flex flex-col sm:flex-row gap-4 mb-4 items-start">
-            <div className="w-full sm:flex-1">
-              <div className="relative">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="search"
-                  placeholder="Buscar nas conversas..."
-                  className="pl-8"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-            </div>
-          </div>
-          
-          <AIConversationFilters onFilterChange={handleFilterChange} />
-          <AIConversationHistory 
-            conversations={conversations}
-            isLoading={isLoading}
-            onConversationSelect={() => {
-              // Implementação futura: carregar conversa completa
-              toast.info("Funcionalidade em desenvolvimento");
-            }}
-          />
-        </div>
-      </TabsContent>
     </div>
   );
 };
