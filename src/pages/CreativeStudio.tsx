@@ -4,7 +4,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import CreativeGenerator from "@/components/creative-studio/CreativeGenerator";
 import CreativeGallery from "@/components/creative-studio/CreativeGallery";
-import SdxlGenerator from "@/components/creative-studio/SdxlGenerator";
 import { GenerateWanVideoButton } from "@/components/creative-studio/GenerateWanVideoButton";
 
 const CreativeStudio = () => {
@@ -24,7 +23,7 @@ const CreativeStudio = () => {
         </p>
         <p className="text-muted-foreground mt-1 text-sm">
           <span className="bg-gradient-to-r from-purple-500 to-blue-500 text-white px-2 py-0.5 rounded-sm">Novo!</span>{" "}
-          Modelo Realistic Vision V3 para transformação de imagens ultra-realistas, SDXL para geração direta e WAN 2.1 para geração de vídeo.
+          Modelo Realistic Vision V3 para transformação de imagens ultra-realistas e WAN 2.1 para geração de vídeo.
         </p>
         {/* Updated troubleshooting hint */}
         <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-md">
@@ -42,23 +41,14 @@ const CreativeStudio = () => {
       </header>
       
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 mb-6">
+        <TabsList className="grid w-full grid-cols-3 mb-6">
           <TabsTrigger value="create">Criar Novo</TabsTrigger>
-          <TabsTrigger value="sdxl">Gerar com SDXL</TabsTrigger>
           <TabsTrigger value="wan-video">Vídeo com WAN 2.1</TabsTrigger>
           <TabsTrigger value="gallery">Meus Criativos Salvos</TabsTrigger>
         </TabsList>
         
         <TabsContent value="create" className="mt-0">
           <CreativeGenerator />
-        </TabsContent>
-        
-        <TabsContent value="sdxl" className="mt-0">
-          <Card>
-            <CardContent className="pt-6">
-              <SdxlGenerator />
-            </CardContent>
-          </Card>
         </TabsContent>
 
         <TabsContent value="wan-video" className="mt-0">
