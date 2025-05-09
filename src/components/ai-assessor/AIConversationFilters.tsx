@@ -1,6 +1,6 @@
 
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const filters = [
@@ -18,7 +18,7 @@ type AIConversationFiltersProps = {
 };
 
 const AIConversationFilters = ({ onFilterChange }: AIConversationFiltersProps) => {
-  const [activeFilter, setActiveFilter] = React.useState<string | null>(null);
+  const [activeFilter, setActiveFilter] = useState<string | null>(null);
 
   const handleFilterClick = (type: string | null) => {
     setActiveFilter(type);

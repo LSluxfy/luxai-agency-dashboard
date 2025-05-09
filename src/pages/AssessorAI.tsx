@@ -5,19 +5,11 @@ import { supabase } from "@/integrations/supabase/client";
 import AIChat from "@/components/ai-assessor/AIChat";
 import AIConversationHistory from "@/components/ai-assessor/AIConversationHistory";
 import AIConversationFilters from "@/components/ai-assessor/AIConversationFilters";
-import AIFloatingWidget from "@/components/ai-assessor/AIFloatingWidget";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, MessageSquare, History } from "lucide-react";
 import { toast } from "sonner";
-
-type AIConversation = {
-  id: string;
-  message: string;
-  response: string;
-  type: string;
-  created_at: string;
-};
+import type { AIConversation } from "@/components/ai-assessor/AIConversationHistory";
 
 const AssessorAI = () => {
   const { user } = useAuth();
@@ -32,10 +24,11 @@ const AssessorAI = () => {
 
     try {
       setIsLoading(true);
-
+      
       let query = supabase
         .from('ia_conversations')
         .select('*')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (selectedFilter) {
@@ -50,7 +43,7 @@ const AssessorAI = () => {
         return;
       }
 
-      setConversations(data || []);
+      setConversations(data as AIConversation[]);
     } catch (error) {
       console.error("Erro ao buscar conversas:", error);
       toast.error("Erro ao carregar conversas");
@@ -120,13 +113,6 @@ const AssessorAI = () => {
           />
         </div>
       </TabsContent>
-
-      {/* Widget flutuante aparece em todas as páginas, mesmo na do Assessor IA */}
-      <AIFloatingWidget 
-        userId={user?.id}
-        onConversationAdded={handleConversationAdded}
-        openByDefault={false}
-      />
     </div>
   );
 };
