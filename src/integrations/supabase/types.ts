@@ -45,6 +45,57 @@ export type Database = {
         }
         Relationships: []
       }
+      ia_conversations: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          response: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          response: string
+          type?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          response?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ia_settings: {
+        Row: {
+          created_at: string
+          id: string
+          language: string
+          tone: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          language?: string
+          tone?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          language?: string
+          tone?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       invoices: {
         Row: {
           amount_cents: number

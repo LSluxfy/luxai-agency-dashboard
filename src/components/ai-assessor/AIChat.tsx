@@ -44,7 +44,6 @@ const AIChat = ({ userId, onConversationAdded, isWidget = false }: AIChatProps) 
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('supabase.auth.token')}`,
         },
         body: JSON.stringify({
           message,
