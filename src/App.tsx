@@ -11,7 +11,6 @@ import CampaignDetail from "./pages/CampaignDetail";
 import FacebookConnection from "./pages/FacebookConnection";
 import FacebookCallback from "./pages/FacebookCallback";
 import CreativeStudio from "./pages/CreativeStudio";
-import FluxProImageGenerator from "./pages/FluxProImageGenerator";
 import Metrics from "./pages/Metrics";
 import Finance from "./pages/Finance";
 import AssessorAI from "./pages/AssessorAI";
@@ -45,7 +44,6 @@ const App = () => (
               <Route path="/facebook" element={<FacebookConnection />} />
               <Route path="/facebook/callback" element={<FacebookCallback />} />
               <Route path="/creative-studio" element={<CreativeStudio />} />
-              <Route path="/gerar-imagem" element={<FluxProImageGenerator />} />
               <Route path="/metrics" element={<Metrics />} />
               <Route path="/finance" element={<Finance />} />
               <Route path="/assessor-ia" element={<AssessorAI />} />

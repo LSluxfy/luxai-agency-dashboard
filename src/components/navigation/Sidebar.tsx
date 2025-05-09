@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -16,8 +15,7 @@ import {
   ChevronsUpDown,
   BrainCircuit,
   MessageSquare,
-  Files,
-  Sparkles
+  Files
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -74,7 +72,6 @@ const Sidebar = () => {
     { icon: LayoutDashboard, label: "Dashboard", to: "/dashboard" },
     { icon: FilePlus, label: "Criar Campanha", to: "/onboarding" },
     { icon: Wand2, label: "Studio de Criativos", to: "/creative-studio" },
-    { icon: Sparkles, label: "Gerar Imagem (Flux Pro)", to: "/gerar-imagem" },
     { icon: BrainCircuit, label: "Assessor IA", to: "/assessor-ia" },
     { icon: Facebook, label: "Conexão com Facebook", to: "/facebook" },
     { icon: BarChart, label: "Métricas", to: "/metrics" },
