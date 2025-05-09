@@ -211,6 +211,14 @@ const Support = () => {
     <span className={`inline-block w-2 h-2 rounded-full mr-2 ${isOnline ? 'bg-green-500' : 'bg-red-500'}`}></span>
   );
 
+  const navigateToNewTicketTab = () => {
+    // Fix: Cast to HTMLElement to use click() method
+    const newTicketTab = document.querySelector('[data-value="new"]');
+    if (newTicketTab && newTicketTab instanceof HTMLElement) {
+      newTicketTab.click();
+    }
+  };
+
   return (
     <div className="container mx-auto p-4 max-w-7xl">
       <h1 className="text-3xl font-bold mb-6">Suporte</h1>
@@ -351,7 +359,7 @@ const Support = () => {
                   <Button 
                     variant="outline" 
                     className="mt-4"
-                    onClick={() => document.querySelector('[data-value="new"]')?.click()}
+                    onClick={navigateToNewTicketTab}
                   >
                     Criar Novo Ticket
                   </Button>
@@ -489,3 +497,4 @@ const Support = () => {
 };
 
 export default Support;
+
