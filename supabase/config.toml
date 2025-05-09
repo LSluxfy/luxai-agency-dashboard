@@ -1,9 +1,26 @@
 
 project_id = "lgblicqyurcttmlguwsd"
 
-[functions]
-[functions.generate-wan-video]
-verify_jwt = false
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage"]
 
-[functions.check-wan-video-status]
-verify_jwt = false
+[db]
+port = 54322
+
+[studio]
+enabled = true
+port = 54323
+external_url = "https://supabase.io/dashboard"
+
+[inbucket]
+enabled = true
+port = 54324
+
+[storage]
+enabled = true
+
+[functions]
+[functions.ask-ia]
+verify_jwt = true

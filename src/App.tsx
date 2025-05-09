@@ -13,6 +13,7 @@ import FacebookCallback from "./pages/FacebookCallback";
 import CreativeStudio from "./pages/CreativeStudio";
 import Metrics from "./pages/Metrics";
 import Finance from "./pages/Finance";
+import AssessorAI from "./pages/AssessorAI";
 import AppLayout from "./components/layouts/AppLayout";
 import NotFound from "./pages/NotFound";
 import Index from "./pages/Index";
@@ -43,6 +44,7 @@ const App = () => (
               <Route path="/creative-studio" element={<CreativeStudio />} />
               <Route path="/metrics" element={<Metrics />} />
               <Route path="/finance" element={<Finance />} />
+              <Route path="/ia-assessor" element={<AssessorAI />} />
             </Route>
             
             <Route path="*" element={<NotFound />} />

@@ -13,7 +13,8 @@ import {
   Wand2,
   BarChart,
   CreditCard,
-  ChevronsUpDown
+  ChevronsUpDown,
+  BrainCircuit
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -71,6 +72,7 @@ const Sidebar = () => {
     { icon: LayoutDashboard, label: "Dashboard", to: "/dashboard" },
     { icon: FilePlus, label: "Criar Campanha", to: "/onboarding" },
     { icon: Wand2, label: "Studio de Criativos", to: "/creative-studio" },
+    { icon: BrainCircuit, label: "Assessor IA", to: "/ia-assessor" },
     { icon: Facebook, label: "Conexão com Facebook", to: "/facebook" },
     { icon: BarChart, label: "Métricas", to: "/metrics" },
     { icon: CreditCard, label: "Financeiro", to: "/finance" },
