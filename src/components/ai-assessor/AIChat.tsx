@@ -1,11 +1,12 @@
 
-import { useState, FormEvent } from "react";
+import { useState, useEffect, FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { LoaderCircle, Send } from "lucide-react";
+import { LoaderCircle, Send, Image } from "lucide-react";
 import { toast } from "sonner";
+import ReactMarkdown from "react-markdown";
 
 const conversationTypes = [
   { value: "estrategia", label: "Estratégias de marketing" },
@@ -20,13 +21,20 @@ type AIChatProps = {
   userId: string;
   onConversationAdded?: () => void;
   isWidget?: boolean;
+  suggestedPrompt?: string;
 };
 
-const AIChat = ({ userId, onConversationAdded, isWidget = false }: AIChatProps) => {
+const AIChat = ({ userId, onConversationAdded, isWidget = false, suggestedPrompt = "" }: AIChatProps) => {
   const [message, setMessage] = useState("");
   const [response, setResponse] = useState("");
   const [type, setType] = useState("outros");
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (suggestedPrompt) {
+      setMessage(suggestedPrompt);
+    }
+  }, [suggestedPrompt]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -93,20 +101,32 @@ const AIChat = ({ userId, onConversationAdded, isWidget = false }: AIChatProps) 
           </div>
           
           <div className="flex flex-col sm:flex-row justify-between gap-2">
-            <Select
-              value={type}
-              onValueChange={setType}
-              disabled={isLoading}
-            >
-              <SelectTrigger className="w-full sm:w-[220px]">
-                <SelectValue placeholder="Selecione o tipo" />
-              </SelectTrigger>
-              <SelectContent>
-                {conversationTypes.map((item) => (
-                  <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex gap-2">
+              <Select
+                value={type}
+                onValueChange={setType}
+                disabled={isLoading}
+              >
+                <SelectTrigger className="w-full sm:w-[220px]">
+                  <SelectValue placeholder="Selecione o tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  {conversationTypes.map((item) => (
+                    <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
+              <Button 
+                type="button" 
+                variant="outline" 
+                className="w-10 p-0 flex-shrink-0" 
+                disabled={true} 
+                title="Recurso em breve"
+              >
+                <Image className="h-4 w-4" />
+              </Button>
+            </div>
             
             <Button type="submit" disabled={isLoading || !message.trim()}>
               {isLoading ? <LoaderCircle className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
@@ -118,7 +138,9 @@ const AIChat = ({ userId, onConversationAdded, isWidget = false }: AIChatProps) 
         {response && (
           <div className="mt-6 p-4 bg-muted/50 rounded-lg">
             <h3 className="font-medium mb-2">Resposta:</h3>
-            <div className="whitespace-pre-wrap">{response}</div>
+            <div className="prose prose-sm max-w-none">
+              <ReactMarkdown>{response}</ReactMarkdown>
+            </div>
           </div>
         )}
       </CardContent>

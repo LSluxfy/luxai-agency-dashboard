@@ -7,7 +7,7 @@ import AIChat from "./AIChat";
 import { motion, AnimatePresence } from "framer-motion";
 
 type AIFloatingWidgetProps = {
-  userId?: string;
+  userId: string;
   onConversationAdded?: () => void;
   openByDefault?: boolean;
 };

@@ -1,9 +1,10 @@
 
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 
 export type AIConversation = {
   id: string;
@@ -16,6 +17,7 @@ export type AIConversation = {
 type AIConversationHistoryProps = {
   conversations: AIConversation[];
   isLoading: boolean;
+  onConversationSelect?: (conversation: AIConversation) => void;
 };
 
 const ConversationTypeLabel = ({ type }: { type: string }) => {
@@ -37,7 +39,7 @@ const ConversationTypeLabel = ({ type }: { type: string }) => {
   );
 };
 
-const AIConversationHistory = ({ conversations, isLoading }: AIConversationHistoryProps) => {
+const AIConversationHistory = ({ conversations, isLoading, onConversationSelect }: AIConversationHistoryProps) => {
   if (isLoading) {
     return (
       <div className="space-y-4 mt-4">
@@ -75,13 +77,23 @@ const AIConversationHistory = ({ conversations, isLoading }: AIConversationHisto
   return (
     <div className="space-y-6 mt-4">
       {conversations.map((conversation) => (
-        <Card key={conversation.id} className="overflow-hidden">
+        <Card 
+          key={conversation.id} 
+          className="overflow-hidden hover:border-primary/50 transition-all cursor-pointer"
+          onClick={() => onConversationSelect && onConversationSelect(conversation)}
+        >
           <CardHeader className="pb-2">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <ConversationTypeLabel type={conversation.type} />
+                <span className="text-xs text-muted-foreground hidden sm:inline">
+                  {format(new Date(conversation.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                </span>
               </div>
-              <span className="text-sm text-muted-foreground">
+              <span className="text-sm text-muted-foreground sm:hidden">
+                {format(new Date(conversation.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+              </span>
+              <span className="text-xs text-muted-foreground hidden sm:inline">
                 {formatDistanceToNow(new Date(conversation.created_at), { 
                   addSuffix: true, 
                   locale: ptBR
@@ -92,11 +104,24 @@ const AIConversationHistory = ({ conversations, isLoading }: AIConversationHisto
           <CardContent className="text-sm">
             <div className="mb-4">
               <h4 className="font-medium">Sua pergunta:</h4>
-              <p className="mt-1">{conversation.message}</p>
+              <p className="mt-1 line-clamp-2">{conversation.message}</p>
             </div>
             <div>
               <h4 className="font-medium">Resposta da IA:</h4>
-              <p className="mt-1 whitespace-pre-wrap">{conversation.response}</p>
+              <p className="mt-1 line-clamp-3 opacity-75">{conversation.response}</p>
+            </div>
+            <div className="mt-4 flex justify-end">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-xs"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onConversationSelect && onConversationSelect(conversation);
+                }}
+              >
+                Ver detalhes
+              </Button>
             </div>
           </CardContent>
         </Card>
