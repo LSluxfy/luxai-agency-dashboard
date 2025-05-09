@@ -171,9 +171,9 @@ const HeroSection = ({ onStartTrial, onWatchDemo }: HeroSectionProps) => {
       <PulseBeams 
         beams={beams}
         gradientColors={gradientColors}
-        className="absolute inset-0 bg-blue-950/90"
-        baseColor="rgba(30, 58, 138, 0.3)"
-        accentColor="rgba(37, 99, 235, 0.6)"
+        className="absolute inset-0 bg-gray-100/90"
+        baseColor="rgba(107, 114, 128, 0.3)"
+        accentColor="rgba(156, 163, 175, 0.6)"
       >
         {/* Empty to use as background container */}
       </PulseBeams>
