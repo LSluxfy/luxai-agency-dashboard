@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import type { AIConversation } from "@/components/ai-assessor/AIConversationHistory";
 import { Card, CardContent } from "@/components/ui/card";
+import ReactMarkdown from "react-markdown";
 
 // Sugestões rápidas para o usuário
 const quickSuggestions = [

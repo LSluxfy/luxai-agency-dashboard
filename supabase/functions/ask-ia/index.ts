@@ -40,6 +40,8 @@ serve(async (req) => {
       );
     }
 
+    console.log(`Iniciando processamento para usuário ${userId}`);
+
     // Obter configuração do usuário
     const userSettingsResponse = await fetch(`${supabaseUrl}/rest/v1/ia_settings?user_id=eq.${userId}&select=tone,language`, {
       headers: {

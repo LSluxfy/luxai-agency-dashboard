@@ -62,8 +62,9 @@ const AIChat = ({ userId, onConversationAdded, isWidget = false, suggestedPrompt
       });
       
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Erro ao processar solicitação');
+        const errorData = await response.json().catch(() => ({ error: 'Erro de conexão' }));
+        console.error('Erro na resposta da função:', response.status, errorData);
+        throw new Error(errorData.error || `Erro ${response.status}: Falha na comunicação com a função`);
       }
       
       const data = await response.json();
@@ -76,7 +77,7 @@ const AIChat = ({ userId, onConversationAdded, isWidget = false, suggestedPrompt
       
     } catch (error) {
       console.error('Erro ao enviar mensagem:', error);
-      toast.error("Erro ao obter resposta da IA. Tente novamente.");
+      toast.error(`Erro ao obter resposta da IA. ${error.message || 'Tente novamente.'}`);
     } finally {
       setIsLoading(false);
     }

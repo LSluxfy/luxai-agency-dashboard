@@ -17,3 +17,4 @@ api_url = "http://localhost:54321"
 [functions]
 [functions.ask-ia]
 verify_jwt = false
+
