@@ -44,7 +44,7 @@ const App = () => (
               <Route path="/creative-studio" element={<CreativeStudio />} />
               <Route path="/metrics" element={<Metrics />} />
               <Route path="/finance" element={<Finance />} />
-              <Route path="/ia-assessor" element={<AssessorAI />} />
+              <Route path="/assessor-ia" element={<AssessorAI />} />
             </Route>
             
             <Route path="*" element={<NotFound />} />

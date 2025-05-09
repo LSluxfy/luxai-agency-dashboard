@@ -31,9 +31,12 @@ const AssessorAI = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [suggestedPrompt, setSuggestedPrompt] = useState("");
 
+  console.log("AssessorAI component rendered, user:", user?.id);
+
   const fetchConversations = async () => {
     if (!user) return;
-
+    
+    console.log("Fetching conversations for user:", user.id);
     try {
       setIsLoading(true);
       
@@ -59,6 +62,7 @@ const AssessorAI = () => {
         return;
       }
 
+      console.log("Conversations fetched:", data?.length);
       setConversations(data as AIConversation[]);
     } catch (error) {
       console.error("Erro ao buscar conversas:", error);

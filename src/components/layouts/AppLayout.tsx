@@ -10,10 +10,12 @@ const AppLayout = () => {
   const { user } = useAuth();
   const location = useLocation();
   const [showFloatingWidget, setShowFloatingWidget] = useState(true);
-
-  // Não mostrar o widget flutuante na página do Assessor IA
+  
   useEffect(() => {
-    setShowFloatingWidget(!location.pathname.includes('ia-assessor'));
+    // Console.log para depuração da navegação
+    console.log("Current path:", location.pathname);
+    
+    setShowFloatingWidget(!location.pathname.includes('assessor-ia'));
   }, [location]);
 
   return (
