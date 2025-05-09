@@ -66,7 +66,8 @@ const Sidebar = () => {
                   className={({ isActive }) =>
                     cn(
                       "flex items-center gap-3 px-3 py-2 rounded-md transition-all",
-                      "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                      "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:translate-x-1",
+                      "hover:shadow-md",
                       isActive
                         ? "bg-sidebar-primary text-sidebar-primary-foreground"
                         : "text-sidebar-foreground",
@@ -74,8 +75,10 @@ const Sidebar = () => {
                     )
                   }
                 >
-                  <item.icon size={20} />
-                  {!collapsed && <span>{item.label}</span>}
+                  <span className="flex items-center justify-center min-w-[24px]">
+                    <item.icon size={20} />
+                  </span>
+                  {!collapsed && <span className="truncate">{item.label}</span>}
                 </NavLink>
               </TooltipTrigger>
               {collapsed && (
@@ -93,12 +96,15 @@ const Sidebar = () => {
               to="/"
               className={cn(
                 "flex items-center gap-3 px-3 py-2 rounded-md transition-all",
-                "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:translate-x-1",
+                "hover:shadow-md",
                 "text-sidebar-foreground",
                 collapsed ? "justify-center" : ""
               )}
             >
-              <LogOut size={20} />
+              <span className="flex items-center justify-center min-w-[24px]">
+                <LogOut size={20} />
+              </span>
               {!collapsed && <span>Sair</span>}
             </NavLink>
           </TooltipTrigger>
