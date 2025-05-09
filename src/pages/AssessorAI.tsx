@@ -98,6 +98,15 @@ const AssessorAI = () => {
     setShowNewChat(true);
   };
 
+  if (!user) {
+    return (
+      <div className="container mx-auto p-4 pt-6 text-center">
+        <h1 className="text-3xl font-bold mb-4">Assessor IA</h1>
+        <p className="text-lg">Faça login para acessar o Assessor IA</p>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto p-4 pt-6">
       <h1 className="text-3xl font-bold mb-4">Assessor IA</h1>
