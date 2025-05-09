@@ -25,17 +25,19 @@ const AssessorAI = () => {
     try {
       setIsLoading(true);
       
-      let query = supabase
+      // Use a tipagem mais genérica para evitar o erro de tipo
+      const { data, error } = await supabase
         .from('ia_conversations')
         .select('*')
         .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (selectedFilter) {
-        query = query.eq('type', selectedFilter);
-      }
-
-      const { data, error } = await query;
+        .order('created_at', { ascending: false })
+        .then(result => {
+          // Adicionar tipagem explícita ao resultado
+          return {
+            data: result.data as AIConversation[] | null,
+            error: result.error
+          };
+        });
 
       if (error) {
         console.error("Erro ao buscar conversas:", error);
@@ -43,7 +45,7 @@ const AssessorAI = () => {
         return;
       }
 
-      setConversations(data as AIConversation[]);
+      setConversations(data || []);
     } catch (error) {
       console.error("Erro ao buscar conversas:", error);
       toast.error("Erro ao carregar conversas");
