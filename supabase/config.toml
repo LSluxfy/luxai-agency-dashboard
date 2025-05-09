@@ -9,12 +9,19 @@ schemas = ["public", "storage"]
 [db]
 port = 54322
 
+[realtime]
+enabled = true
+
 [studio]
 enabled = true
 port = 54323
-api_url = "http://localhost:54321"
 
-[functions]
-[functions.ask-ia]
+[inbucket]
+enabled = true
+port = 54324
+
+[functions.generate-with-image]
 verify_jwt = false
 
+[functions.generate-flux-pro]
+verify_jwt = false
