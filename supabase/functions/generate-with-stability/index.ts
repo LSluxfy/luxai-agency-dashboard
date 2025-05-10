@@ -23,6 +23,23 @@ const VALID_SDXL_DIMENSIONS = [
   "896x1152"
 ];
 
+/**
+ * Helper function to create standardized error response
+ */
+function createErrorResponse(id, name, errors, status = 400) {
+  return new Response(
+    JSON.stringify({
+      id,
+      name,
+      errors: Array.isArray(errors) ? errors : [errors]
+    }),
+    { 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+      status 
+    }
+  );
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -33,9 +50,10 @@ serve(async (req) => {
     const { prompt, engineId, initImage, dimensions } = await req.json();
 
     if (!prompt) {
-      return new Response(
-        JSON.stringify({ error: "O prompt é obrigatório" }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      return createErrorResponse(
+        "missing_prompt_error",
+        "missing_required_field",
+        ["O prompt é obrigatório"]
       );
     }
 
@@ -49,14 +67,12 @@ serve(async (req) => {
     if (dimensions) {
       // Check if the provided dimensions are valid
       if (!VALID_SDXL_DIMENSIONS.includes(dimensions)) {
-        return new Response(
-          JSON.stringify({ 
-            id: "invalid_sdxl_dimensions",
-            name: "invalid_sdxl_v1_dimensions",
-            error: "Dimensões inválidas para SDXL",
-            validDimensions: VALID_SDXL_DIMENSIONS
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        return createErrorResponse(
+          "invalid_sdxl_dimensions",
+          "invalid_sdxl_v1_dimensions",
+          [
+            `Para os modelos stable-diffusion-xl-1024-v0-9 e stable-diffusion-xl-1024-v1-0, as dimensões permitidas são ${VALID_SDXL_DIMENSIONS.join(', ')}, mas recebemos ${dimensions}`
+          ]
         );
       }
       
@@ -108,11 +124,15 @@ serve(async (req) => {
       });
       
       if (!response.ok) {
-        const errorText = await response.text();
+        const errorData = await response.json().catch(() => null);
+        const errorText = await response.text().catch(() => "Unknown error");
         console.error(`API Error (Status ${response.status}):`, errorText);
-        return new Response(
-          JSON.stringify({ error: `API Error: ${response.statusText}`, details: errorText }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: response.status }
+        
+        return createErrorResponse(
+          errorData?.id || `stability_api_error_${Date.now()}`,
+          errorData?.name || "stability_api_error",
+          errorData?.message ? [errorData.message] : ["Erro na API de geração de imagem"],
+          response.status
         );
       }
       
@@ -128,9 +148,10 @@ serve(async (req) => {
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       } else {
-        return new Response(
-          JSON.stringify({ error: "Nenhuma imagem foi gerada" }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        return createErrorResponse(
+          "no_image_generated",
+          "generation_failed",
+          ["Nenhuma imagem foi gerada"]
         );
       }
     } else {
@@ -171,11 +192,29 @@ serve(async (req) => {
       });
       
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`API Error (Status ${response.status}):`, errorText);
-        return new Response(
-          JSON.stringify({ error: `API Error: ${response.statusText}`, details: errorText }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: response.status }
+        // Try to parse as JSON first
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch (e) {
+          const errorText = await response.text();
+          console.error(`API Error (Status ${response.status}):`, errorText);
+          
+          return createErrorResponse(
+            `stability_api_error_${Date.now()}`,
+            "stability_api_error",
+            [errorText || `API Error: ${response.statusText}`],
+            response.status
+          );
+        }
+        
+        console.error(`API Error (Status ${response.status}):`, errorData);
+        
+        return createErrorResponse(
+          errorData.id || `stability_api_error_${Date.now()}`,
+          errorData.name || "stability_api_error",
+          errorData.message ? [errorData.message] : ["Erro na API de geração de imagem"],
+          response.status
         );
       }
       
@@ -193,17 +232,20 @@ serve(async (req) => {
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       } else {
-        return new Response(
-          JSON.stringify({ error: "Nenhuma imagem foi gerada" }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        return createErrorResponse(
+          "no_image_generated",
+          "generation_failed",
+          ["Nenhuma imagem foi gerada"]
         );
       }
     }
   } catch (error) {
     console.error("Error in generate-with-stability function:", error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+    return createErrorResponse(
+      `internal_error_${Date.now()}`,
+      "internal_server_error",
+      [error.message || "Erro interno do servidor"],
+      500
     );
   }
 });
