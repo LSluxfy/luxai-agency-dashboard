@@ -30,7 +30,7 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt, engineId, initImage } = await req.json();
+    const { prompt, engineId, initImage, dimensions } = await req.json();
 
     if (!prompt) {
       return new Response(
@@ -41,6 +41,25 @@ serve(async (req) => {
 
     // Default engine if not specified
     const engine = engineId || "stable-diffusion-xl-1024-v1-0";
+    
+    // Parse dimensions or use default
+    let width = 1024;
+    let height = 1024;
+    
+    if (dimensions && VALID_SDXL_DIMENSIONS.includes(dimensions)) {
+      const [w, h] = dimensions.split("x").map(Number);
+      width = w;
+      height = h;
+    } else if (dimensions) {
+      // If dimensions were provided but invalid, return an error
+      return new Response(
+        JSON.stringify({ 
+          error: "Dimensões inválidas",
+          validDimensions: VALID_SDXL_DIMENSIONS
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
     
     // Determine if we're doing text-to-image or image-to-image
     if (initImage && initImage.startsWith('data:image')) {
@@ -69,9 +88,6 @@ serve(async (req) => {
       formData.append("samples", "1");
       formData.append("steps", "30");
       formData.append("image_strength", "0.35"); // Controls how much to transform the image
-      
-      // Use default dimensions for image-to-image (1024x1024)
-      // No need to set width/height as init_image dimensions will be used automatically
       
       // Send request to Stability API
       const endpoint = `${STABILITY_API_HOST}/v1/generation/${engine}/image-to-image`;
@@ -115,6 +131,7 @@ serve(async (req) => {
     } else {
       // Text-to-image generation
       console.log("Text-to-image generation");
+      console.log(`Using dimensions: ${width}x${height}`);
       
       const requestBody = {
         text_prompts: [
@@ -129,8 +146,8 @@ serve(async (req) => {
         ],
         cfg_scale: 7,
         clip_guidance_preset: "FAST_BLUE",
-        height: 1024,
-        width: 1024, // Using standard 1024x1024 which is supported
+        height: height,
+        width: width,
         samples: 1,
         steps: 30,
       };

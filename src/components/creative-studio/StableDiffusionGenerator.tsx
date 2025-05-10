@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Wand2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
 import {
   Select,
   SelectContent,
@@ -28,6 +29,7 @@ interface StabilityRequestBody {
   prompt: string;
   engineId: string;
   initImage?: string; // Optional for image-to-image generation
+  dimensions?: string; // Add dimensions parameter
 }
 
 // Valid dimensions for SDXL models
@@ -52,7 +54,7 @@ export default function StableDiffusionGenerator() {
   const [generationProgress, setGenerationProgress] = useState<number>(0);
   const [engineId, setEngineId] = useState<string>("stable-diffusion-xl-1024-v1-0");
   const [dimensions, setDimensions] = useState<string>("1024x1024");
-  const [imageStrength, setImageStrength] = useState<string>("0.35");
+  const [imageStrength, setImageStrength] = useState<number>(0.35);
 
   // Handle image file selection
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -113,7 +115,8 @@ export default function StableDiffusionGenerator() {
     try {
       let requestBody: StabilityRequestBody = {
         prompt: prompt,
-        engineId: engineId
+        engineId: engineId,
+        dimensions: dimensions // Add dimensions to the request
       };
       
       // If image file exists, include it for img2img generation
@@ -271,14 +274,13 @@ export default function StableDiffusionGenerator() {
                       <Label htmlFor="image-strength" className="block text-sm font-medium mb-2">
                         Força da imagem original: {imageStrength}
                       </Label>
-                      <Input 
+                      <Slider
                         id="image-strength"
-                        type="range"
-                        min="0.1"
-                        max="0.9"
-                        step="0.05"
-                        value={imageStrength}
-                        onChange={(e) => setImageStrength(e.target.value)}
+                        min={0.1}
+                        max={0.9}
+                        step={0.05}
+                        value={[imageStrength]}
+                        onValueChange={(values) => setImageStrength(values[0])}
                         disabled={isGenerating}
                       />
                       <p className="text-xs text-muted-foreground mt-1">
