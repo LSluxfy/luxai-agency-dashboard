@@ -1,3 +1,4 @@
+
 import { VALID_DIMENSIONS } from "@/components/creative-studio/stable-diffusion/sdConstants";
 
 /**
@@ -115,6 +116,71 @@ export const resizeImageToNearestValidDimension = async (
     img.src = dataUri;
   });
 };
+
+/**
+ * Process multiple images to ensure they have the same dimensions
+ * @param images Array of image data URIs
+ * @param isSDXL Whether to use SDXL dimensions
+ * @returns Array of processed images with the same dimensions
+ */
+export async function processImagesToSameDimension(
+  images: string[], 
+  isSDXL: boolean = true
+): Promise<string[]> {
+  if (images.length === 0) return [];
+  if (images.length === 1) {
+    return [await resizeImageToNearestValidDimension(images[0], isSDXL)];
+  }
+  
+  // Load all images to determine dimensions
+  const imageElements = await Promise.all(images.map(dataUri => {
+    return new Promise<HTMLImageElement>((resolve) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.src = dataUri;
+    });
+  }));
+  
+  // Determine target dimensions (use the first image's dimensions)
+  const firstImg = imageElements[0];
+  const closestDim = findClosestValidDimension(firstImg.width, firstImg.height, isSDXL);
+  const [targetWidth, targetHeight] = closestDim.split('x').map(Number);
+  
+  // Process all images to the same dimensions
+  const processedImages = await Promise.all(imageElements.map((img, index) => {
+    return new Promise<string>((resolve) => {
+      const canvas = document.createElement('canvas');
+      canvas.width = targetWidth;
+      canvas.height = targetHeight;
+      
+      const ctx = canvas.getContext('2d')!;
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      
+      // Fill with black background
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(0, 0, targetWidth, targetHeight);
+      
+      // Draw the image centered on the canvas
+      const scale = Math.min(
+        targetWidth / img.width,
+        targetHeight / img.height
+      );
+      
+      const scaledWidth = img.width * scale;
+      const scaledHeight = img.height * scale;
+      const x = (targetWidth - scaledWidth) / 2;
+      const y = (targetHeight - scaledHeight) / 2;
+      
+      ctx.drawImage(img, x, y, scaledWidth, scaledHeight);
+      
+      const resizedDataUri = canvas.toDataURL('image/jpeg', 0.92);
+      resolve(resizedDataUri);
+    });
+  }));
+  
+  return processedImages;
+}
 
 // New utility functions for mask and control images processing
 export async function processStabilityImage(

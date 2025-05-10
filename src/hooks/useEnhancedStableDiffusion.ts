@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
-import { fileToDataUri, resizeImageToNearestValidDimension } from "@/utils/imageUtils";
+import { fileToDataUri, resizeImageToNearestValidDimension, processImagesToSameDimension } from "@/utils/imageUtils";
 import type { StabilityRequestBody } from "@/components/creative-studio/stable-diffusion/sdConstants";
 
 export const useEnhancedStableDiffusion = () => {
@@ -83,24 +83,25 @@ export const useEnhancedStableDiffusion = () => {
         };
       }
       else if (mode === "edit" && imageFile && maskImage) {
-        // Edit mode with mask
+        // Edit mode with mask - ENSURE SAME DIMENSIONS
         let imageData = await fileToDataUri(imageFile);
         let maskData = await fileToDataUri(maskImage);
         
-        if (engineId.includes("xl-1024")) {
-          imageData = await resizeImageToNearestValidDimension(imageData, true);
-          maskData = await resizeImageToNearestValidDimension(maskData, true);
-        } else {
-          imageData = await resizeImageToNearestValidDimension(imageData, false);
-          maskData = await resizeImageToNearestValidDimension(maskData, false);
-        }
+        // Process both images to ensure they have the same dimensions
+        const isSDXL = engineId.includes("xl-1024");
+        const [processedImage, processedMask] = await processImagesToSameDimension(
+          [imageData, maskData], 
+          isSDXL
+        );
         
         requestBody = { 
           ...requestBody, 
-          initImage: imageData,
-          maskImage: maskData,
+          initImage: processedImage,
+          maskImage: processedMask,
           imageStrength: imageStrength !== undefined ? imageStrength : 0.7
         };
+        
+        console.log("Sending edited images with matching dimensions");
       }
       else if (mode === "control" && controlImage) {
         // Control mode
