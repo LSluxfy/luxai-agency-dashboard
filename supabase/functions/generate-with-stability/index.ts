@@ -114,11 +114,15 @@ serve(async (req) => {
       const imageBlob = new Blob([binaryData], { type: 'image/png' });
       formData.append("init_image", imageBlob, "image.png");
       
-      // Add other parameters as regular form fields
+      // Add text prompts - ENSURING THESE ARE PROPERLY PASSED
+      // Positive prompt
       formData.append("text_prompts[0][text]", prompt);
       formData.append("text_prompts[0][weight]", "1");
+      
+      // Negative prompt
       formData.append("text_prompts[1][text]", "low quality, blurry, poorly rendered, disfigured, deformed, ugly");
       formData.append("text_prompts[1][weight]", "-1");
+      
       formData.append("cfg_scale", "7");
       formData.append("samples", "1");
       formData.append("steps", "30");
