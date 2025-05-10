@@ -9,7 +9,7 @@ import VideoFileUpload from "./video/VideoFileUpload";
 import VideoGenerationProgress from "./video/VideoGenerationProgress";
 import VideoViewer from "./video/VideoViewer";
 import { useWanVideoGeneration } from "@/hooks/useWanVideoGeneration";
-import { convertFileToDataUri } from "@/lib/fileUtils";
+import { fileToDataUri } from "@/utils/imageUtils";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 
@@ -51,7 +51,7 @@ export function GenerateWanVideoButton() {
       imageSource = imageUrl.trim();
     } else if (selectedFile) {
       // Convert the file to Data URI
-      imageSource = await convertFileToDataUri(selectedFile);
+      imageSource = await fileToDataUri(selectedFile);
     } else {
       return; // Should never happen, but TypeScript is happy now
     }
