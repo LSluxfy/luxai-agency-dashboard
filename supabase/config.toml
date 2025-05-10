@@ -4,10 +4,21 @@ project_id = "lgblicqyurcttmlguwsd"
 [api]
 enabled = true
 port = 54321
-schemas = ["public", "storage"]
+schemas = ["public", "storage", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
 
 [db]
 port = 54322
+shadow_port = 54320
+major_version = 15
+
+[db.pooler]
+enabled = false
+port = 54329
+pool_mode = "transaction"
+default_pool_size = 20
+max_client_conn = 100
 
 [realtime]
 enabled = true
@@ -15,13 +26,47 @@ enabled = true
 [studio]
 enabled = true
 port = 54323
+api_url = "http://localhost"
 
 [inbucket]
 enabled = true
 port = 54324
 
-[functions.generate-with-image]
-verify_jwt = false
+[storage]
+enabled = true
 
-[functions.generate-flux-pro]
-verify_jwt = false
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+
+[auth.email]
+enabled = true
+double_confirm_changes = true
+enable_confirmations = false
+
+[auth.sms]
+enabled = true
+
+[analytics]
+enabled = true
+port = 54327
+
+[experimental]
+multiuser_enabled = false
+traces_enabled = false
+
+[functions]
+serve_flowtune = { verify_jwt = true }
+ask_ia = { verify_jwt = false }
+generate_product_summary = { verify_jwt = false }
+generate_market_research = { verify_jwt = false }
+generate_campaign = { verify_jwt = false }
+generate_landing_page = { verify_jwt = false }
+generate_flux_pro = { verify_jwt = false }
+generate-with-image = { verify_jwt = false }
+generate-creative = { verify_jwt = false }
+generate-with-stability = { verify_jwt = false }
+generate-wan-video = { verify_jwt = false }
+check-wan-video-status = { verify_jwt = false }
+generate-stability-video = { verify_jwt = false }
+check-stability-video = { verify_jwt = false }

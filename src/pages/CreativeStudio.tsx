@@ -6,6 +6,7 @@ import CreativeGenerator from "@/components/creative-studio/CreativeGenerator";
 import CreativeGallery from "@/components/creative-studio/CreativeGallery";
 import { GenerateWanVideoButton } from "@/components/creative-studio/GenerateWanVideoButton";
 import StableDiffusionGenerator from "@/components/creative-studio/StableDiffusionGenerator";
+import VideoGenerator from "@/components/creative-studio/video/VideoGenerator";
 
 const CreativeStudio = () => {
   const [activeTab, setActiveTab] = useState<string>("create");
@@ -24,7 +25,7 @@ const CreativeStudio = () => {
         </p>
         <p className="text-muted-foreground mt-1 text-sm">
           <span className="bg-gradient-to-r from-purple-500 to-blue-500 text-white px-2 py-0.5 rounded-sm">Novo!</span>{" "}
-          Modelo Stable Diffusion XL para geração de imagens ultra-realistas e WAN 2.1 para geração de vídeo.
+          Modelo Stable Diffusion XL para geração de imagens ultra-realistas, SVD para vídeos a partir de imagens e WAN 2.1 para geração de vídeo.
         </p>
         {/* Updated troubleshooting hint */}
         <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-md">
@@ -32,17 +33,18 @@ const CreativeStudio = () => {
           <p className="text-amber-700 text-sm">
             • Use imagens claras e com boa qualidade para melhores resultados<br/>
             • O Stable Diffusion XL oferece imagens de alta qualidade em até 1024x1024<br/>
+            • O Stable Video Diffusion transforma imagens em vídeos curtos com movimento natural<br/>
             • Prompts detalhados ajudam a obter resultados mais precisos<br/>
-            • A geração de imagens pode levar alguns segundos para ser concluída<br/>
-            • Para gerar vídeo com WAN 2.1, forneça uma URL de imagem HTTPS pública
+            • A geração de imagens e vídeos pode levar alguns segundos para ser concluída
           </p>
         </div>
       </header>
       
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 mb-6">
+        <TabsList className="grid w-full grid-cols-5 mb-6">
           <TabsTrigger value="create">Criar Novo</TabsTrigger>
           <TabsTrigger value="stable-diffusion">Stable Diffusion XL</TabsTrigger>
+          <TabsTrigger value="stability-video">Image-to-Video</TabsTrigger>
           <TabsTrigger value="wan-video">Vídeo com WAN 2.1</TabsTrigger>
           <TabsTrigger value="gallery">Meus Criativos Salvos</TabsTrigger>
         </TabsList>
@@ -53,6 +55,10 @@ const CreativeStudio = () => {
 
         <TabsContent value="stable-diffusion" className="mt-0">
           <StableDiffusionGenerator />
+        </TabsContent>
+        
+        <TabsContent value="stability-video" className="mt-0">
+          <VideoGenerator />
         </TabsContent>
 
         <TabsContent value="wan-video" className="mt-0">
