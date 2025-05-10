@@ -20,6 +20,9 @@ export const useStabilityVideoGeneration = () => {
   const [predictionId, setPredictionId] = useState<string | null>(null);
   const [generationProgress, setGenerationProgress] = useState<number>(0);
   const [engineId, setEngineId] = useState<string>("stable-diffusion-xl-1024-v1-0");
+  // Define polling related state variables at the beginning
+  const [pollingTimeout, setPollingTimeout] = useState<number | null>(null);
+  const [pollingCount, setPollingCount] = useState<number>(0);
 
   const generateVideo = async (options: VideoGenerationOptions) => {
     setIsGenerating(true);
@@ -96,10 +99,11 @@ export const useStabilityVideoGeneration = () => {
           console.log("Resposta de status:", statusData);
           
           if (statusData.status === "succeeded") {
-            // Success! We have our image
-            clearInterval(interval);
-            setPollingInterval(null);
-            setReplicatePredictionId(null);
+            // Success! We have our video
+            if (pollingTimeout !== null) {
+              clearTimeout(pollingTimeout);
+              setPollingTimeout(null);
+            }
             setPollingCount(0);
             setGenerationProgress(100);
 
@@ -115,7 +119,8 @@ export const useStabilityVideoGeneration = () => {
             setGenerationProgress(progressValue);
             
             if (attempts < maxAttempts) {
-              setTimeout(checkStatus, 5000); // Verificar a cada 5 segundos
+              const timeout = setTimeout(checkStatus, 5000); // Verificar a cada 5 segundos
+              setPollingTimeout(timeout);
             } else {
               throw new Error("Tempo limite excedido. A geração está demorando muito.");
             }
@@ -124,7 +129,8 @@ export const useStabilityVideoGeneration = () => {
             setGenerationProgress(progressValue);
             
             if (attempts < maxAttempts) {
-              setTimeout(checkStatus, 5000);
+              const timeout = setTimeout(checkStatus, 5000);
+              setPollingTimeout(timeout);
             } else {
               throw new Error("Tempo limite excedido. A geração está demorando muito.");
             }
@@ -134,11 +140,18 @@ export const useStabilityVideoGeneration = () => {
           setError(err.message || "Erro ao verificar status da geração");
           setIsGenerating(false);
           toast.error("Erro na geração do vídeo");
+          
+          // Clear any existing timeout
+          if (pollingTimeout !== null) {
+            clearTimeout(pollingTimeout);
+            setPollingTimeout(null);
+          }
         }
       };
 
       // Start polling
-      setTimeout(checkStatus, 5000); // Primeira verificação após 5 segundos
+      const initialTimeout = setTimeout(checkStatus, 5000); // Primeira verificação após 5 segundos
+      setPollingTimeout(initialTimeout);
 
     } catch (err: any) {
       console.error("Erro ao gerar vídeo:", err);
@@ -146,6 +159,12 @@ export const useStabilityVideoGeneration = () => {
       setIsGenerating(false);
       setGenerationProgress(0);
       toast.error("Erro ao iniciar a geração de vídeo");
+      
+      // Clear any existing timeout
+      if (pollingTimeout !== null) {
+        clearTimeout(pollingTimeout);
+        setPollingTimeout(null);
+      }
     }
   };
 
@@ -170,13 +189,6 @@ export const useStabilityVideoGeneration = () => {
       reader.readAsDataURL(file);
     });
   };
-
-  // These variables might be undefined in the original code but used in the checkStatus function
-  // Adding them here to make the hook work correctly
-  const [pollingInterval, setPollingInterval] = useState<number | null>(null);
-  const [replicatePredictionId, setReplicatePredictionId] = useState<string | null>(null);
-  const [pollingCount, setPollingCount] = useState<number>(0);
-  const [currentModel, setCurrentModel] = useState<string | null>(null);
 
   return {
     generateVideo,
