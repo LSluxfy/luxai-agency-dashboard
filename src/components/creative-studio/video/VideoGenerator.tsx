@@ -21,7 +21,8 @@ const VideoGenerator = () => {
     videoUrl,
     isGenerating,
     generationProgress,
-    error
+    error,
+    predictionId
   } = useStabilityVideoGeneration();
   
   const handleFileSelected = (file: File) => {
@@ -110,10 +111,14 @@ const VideoGenerator = () => {
               </div>
               
               {isGenerating && (
-                <VideoGenerationProgress progress={generationProgress} />
+                <VideoGenerationProgress 
+                  progress={generationProgress} 
+                  predictionId={predictionId}
+                  error={error}
+                />
               )}
               
-              {error && (
+              {error && !isGenerating && (
                 <div className="mt-4 p-3 bg-destructive/10 rounded-md text-sm text-destructive">
                   <p className="font-medium">Erro:</p>
                   <p>{error}</p>

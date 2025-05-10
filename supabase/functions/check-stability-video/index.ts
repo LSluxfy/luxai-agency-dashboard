@@ -41,7 +41,7 @@ serve(async (req) => {
       const errorData = await response.json().catch(() => null);
       console.error("Stability API error:", errorData || await response.text());
       
-      // If we get a 404, it might mean the generation is still in queue
+      // If we get a 404, it might mean the generation is still in queue or processing
       if (response.status === 404) {
         return new Response(
           JSON.stringify({ status: "processing", message: "Geração em fila" }),

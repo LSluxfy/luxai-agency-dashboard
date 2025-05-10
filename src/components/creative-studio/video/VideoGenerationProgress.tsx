@@ -5,7 +5,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface VideoGenerationProgressProps {
   progress: number;
-  predictionId: string | null;
+  predictionId?: string | null;
   error?: string | null;
 }
 
@@ -14,7 +14,7 @@ const VideoGenerationProgress: React.FC<VideoGenerationProgressProps> = ({
   predictionId,
   error
 }) => {
-  if (!predictionId || progress === 0) return null;
+  if (progress === 0) return null;
 
   const statusText = progress < 100 
     ? `Gerando vídeo... ${Math.round(progress)}%`

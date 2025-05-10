@@ -5,11 +5,17 @@ import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface VideoUrlInputProps {
-  imageUrl: string;
-  setImageUrl: (url: string) => void;
+  onUrlEntered: (url: string) => void;
 }
 
-const VideoUrlInput: React.FC<VideoUrlInputProps> = ({ imageUrl, setImageUrl }) => {
+const VideoUrlInput: React.FC<VideoUrlInputProps> = ({ onUrlEntered }) => {
+  const [imageUrl, setImageUrl] = React.useState<string>("");
+
+  const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setImageUrl(e.target.value);
+    onUrlEntered(e.target.value);
+  };
+
   return (
     <div className="space-y-3">
       <div>
@@ -19,7 +25,7 @@ const VideoUrlInput: React.FC<VideoUrlInputProps> = ({ imageUrl, setImageUrl }) 
           type="url"
           placeholder="https://exemplo.com/sua-imagem.jpg"
           value={imageUrl}
-          onChange={(e) => setImageUrl(e.target.value)}
+          onChange={handleUrlChange}
           className="w-full"
         />
         <p className="mt-1 text-xs text-muted-foreground">
