@@ -38,7 +38,8 @@ serve(async (req) => {
     // Make request to Stability API to check status
     console.log(`Verificando status da geração de vídeo com ID: ${id}`);
     
-    const endpoint = `${STABILITY_API_HOST}/v1/generation/stable-video-diffusion/image-to-video/result/${id}`;
+    // Endpoint atualizado para a versão v2beta
+    const endpoint = `${STABILITY_API_HOST}/v2beta/stable-video-diffusion/image-to-video/result/${id}`;
     console.log(`Usando endpoint: ${endpoint}`);
     
     const response = await fetch(endpoint, {
@@ -63,6 +64,7 @@ serve(async (req) => {
       }
       
       let errorMessage = `Erro da API (${response.status}): ${response.statusText}`;
+      let errorData = null;
       
       try {
         // Try to get text response first
@@ -70,10 +72,12 @@ serve(async (req) => {
         console.log("Texto da resposta de erro:", errorText);
         
         try {
-          // Try to parse as JSON if possible
-          const errorData = JSON.parse(errorText);
-          errorMessage = errorData.message || errorMessage;
-          console.error("Erro da API Stability (JSON):", errorData);
+          if (errorText.trim()) {
+            // Try to parse as JSON if possible
+            errorData = JSON.parse(errorText);
+            errorMessage = errorData.message || errorMessage;
+            console.error("Erro da API Stability (JSON):", errorData);
+          }
         } catch (jsonError) {
           // Not valid JSON, use the text response
           errorMessage = `Erro da API (${response.status}): ${errorText.substring(0, 200)}`;
@@ -94,7 +98,7 @@ serve(async (req) => {
     // Prepare response based on generation status
     let responseData = {
       status: result.status,
-      videoUrl: result.video_url,
+      videoUrl: result.video_url || result.video,  // Compatibilidade com diferentes formatos de resposta
       error: null
     };
     

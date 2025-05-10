@@ -71,7 +71,8 @@ serve(async (req) => {
     // Make request to Stability API
     console.log("Enviando requisição para a API Stability para geração de image-to-video");
     
-    const endpoint = `${STABILITY_API_HOST}/v1/generation/stable-video-diffusion/image-to-video`;
+    // Endpoint atualizado para o SVD (Stable Video Diffusion)
+    const endpoint = `${STABILITY_API_HOST}/v2beta/stable-video-diffusion/image-to-video`;
     console.log(`Usando endpoint: ${endpoint}`);
     
     const response = await fetch(endpoint, {
@@ -86,17 +87,19 @@ serve(async (req) => {
     // Handle non-successful responses
     if (!response.ok) {
       let errorMessage = `Erro da API (${response.status}): ${response.statusText}`;
+      let errorData = null;
       
       try {
-        // Try to get text response first
+        // Try to get response as JSON first
         const errorText = await response.text();
         console.log("Texto da resposta de erro:", errorText);
         
         try {
-          // Try to parse as JSON if possible
-          const errorData = JSON.parse(errorText);
-          errorMessage = errorData.message || errorMessage;
-          console.error("Erro da API Stability (JSON):", errorData);
+          if (errorText.trim()) {
+            errorData = JSON.parse(errorText);
+            errorMessage = errorData.message || errorMessage;
+            console.error("Erro da API Stability (JSON):", errorData);
+          }
         } catch (jsonError) {
           // Not valid JSON, use the text response
           errorMessage = `Erro da API (${response.status}): ${errorText.substring(0, 200)}`;
