@@ -17,7 +17,7 @@ serve(async (req) => {
   }
 
   try {
-    const { id } = await req.json();
+    const { id, engineId = "stable-diffusion-xl-1024-v1-0" } = await req.json();
     
     if (!id) {
       return new Response(
@@ -36,7 +36,7 @@ serve(async (req) => {
     }
     
     // Make request to Stability API to check status
-    console.log(`Verificando status da geração de vídeo com ID: ${id}`);
+    console.log(`Verificando status da geração de vídeo com ID: ${id} (Engine: ${engineId})`);
     
     // Endpoint atualizado para a versão v2beta
     const endpoint = `${STABILITY_API_HOST}/v2beta/stable-video-diffusion/image-to-video/result/${id}`;
@@ -99,6 +99,7 @@ serve(async (req) => {
     let responseData = {
       status: result.status,
       videoUrl: result.video_url || result.video,  // Compatibilidade com diferentes formatos de resposta
+      engineId: engineId,
       error: null
     };
     

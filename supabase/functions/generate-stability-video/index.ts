@@ -17,7 +17,7 @@ serve(async (req) => {
   }
 
   try {
-    const { image, motionBucketId = 127, prompt = "" } = await req.json();
+    const { image, motionBucketId = 127, prompt = "", engineId = "stable-diffusion-xl-1024-v1-0", width = 1024, height = 1024, steps = 30 } = await req.json();
     
     if (!image) {
       return new Response(
@@ -35,6 +35,60 @@ serve(async (req) => {
       );
     }
     
+    // Validate engine ID
+    const allowedEngines = ["stable-diffusion-xl-1024-v1-0", "stable-diffusion-v1-6"];
+    if (!allowedEngines.includes(engineId)) {
+      return new Response(
+        JSON.stringify({ error: `Engine ID inválido. Use um dos seguintes: ${allowedEngines.join(', ')}` }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+    
+    // Validate dimensions based on engine
+    if (engineId === "stable-diffusion-xl-1024-v1-0") {
+      const validDimensions = [
+        "1024x1024", "1152x896", "896x1152", "1216x832", "832x1216",
+        "1344x768", "768x1344", "1536x640", "640x1536"
+      ];
+      const dimensionStr = `${width}x${height}`;
+      
+      if (!validDimensions.includes(dimensionStr)) {
+        return new Response(
+          JSON.stringify({ 
+            error: `Dimensões inválidas para SDXL. Use uma das seguintes: ${validDimensions.join(', ')}` 
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        );
+      }
+    } else if (engineId === "stable-diffusion-v1-6") {
+      // Validate SD 1.6 dimensions
+      if (width < 320 || height < 320 || width > 1536 || height > 1536) {
+        return new Response(
+          JSON.stringify({ 
+            error: "Para SD 1.6, dimensões devem ser entre 320px e 1536px" 
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        );
+      }
+      
+      if (width % 64 !== 0 || height % 64 !== 0) {
+        return new Response(
+          JSON.stringify({ 
+            error: "Para SD 1.6, dimensões devem ser múltiplos de 64px" 
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        );
+      }
+    }
+    
+    // Validate steps (1-50)
+    if (steps < 1 || steps > 50) {
+      return new Response(
+        JSON.stringify({ error: "Número de steps deve estar entre 1 e 50" }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+
     // Prepare payload based on image source type
     const formData = new FormData();
     
@@ -68,11 +122,21 @@ serve(async (req) => {
       formData.append('prompt', prompt);
     }
     
-    // Make request to Stability API
-    console.log("Enviando requisição para a API Stability para geração de image-to-video");
+    // Add steps parameter
+    formData.append('steps', steps.toString());
     
-    // Endpoint atualizado para o SVD (Stable Video Diffusion)
-    const endpoint = `${STABILITY_API_HOST}/v2beta/stable-video-diffusion/image-to-video`;
+    // Make request to Stability API
+    console.log(`Enviando requisição para a API Stability para geração de image-to-video (${engineId})`);
+    console.log(`Usando dimensões: ${width}x${height}, steps: ${steps}`);
+    
+    // Use text-to-image if no image is provided (technically should never happen due to validation)
+    let endpointPath = "image-to-video";
+    if (engineId === "stable-diffusion-xl-1024-v1-0") {
+      endpointPath = "image-to-video"; // For SDXL 1.0
+    }
+    
+    // Endpoint para SVD (Stable Video Diffusion)
+    const endpoint = `${STABILITY_API_HOST}/v2beta/stable-video-diffusion/${endpointPath}`;
     console.log(`Usando endpoint: ${endpoint}`);
     
     const response = await fetch(endpoint, {
@@ -121,7 +185,8 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         id: responseData.id,
-        status: responseData.status 
+        status: responseData.status,
+        engineId: engineId
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

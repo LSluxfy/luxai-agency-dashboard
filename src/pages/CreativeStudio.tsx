@@ -33,7 +33,7 @@ const CreativeStudio = () => {
           <p className="text-amber-700 text-sm">
             • Use imagens claras e com boa qualidade para melhores resultados<br/>
             • O Stable Diffusion XL oferece imagens de alta qualidade em até 1024x1024<br/>
-            • O Stable Video Diffusion transforma imagens em vídeos curtos com movimento natural<br/>
+            • O Stable Video Diffusion (SVD) agora suporta tanto SDXL 1.0 quanto SD 1.6<br/>
             • Prompts detalhados ajudam a obter resultados mais precisos<br/>
             • A geração de imagens e vídeos pode levar alguns segundos para ser concluída
           </p>

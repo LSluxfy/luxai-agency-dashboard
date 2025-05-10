@@ -7,6 +7,10 @@ interface VideoGenerationOptions {
   imageSource: File | string;
   motionBucketId?: number;
   prompt?: string;
+  engineId?: string;
+  width?: number;
+  height?: number;
+  steps?: number;
 }
 
 export const useStabilityVideoGeneration = () => {
@@ -15,12 +19,16 @@ export const useStabilityVideoGeneration = () => {
   const [error, setError] = useState<string | null>(null);
   const [predictionId, setPredictionId] = useState<string | null>(null);
   const [generationProgress, setGenerationProgress] = useState<number>(0);
+  const [engineId, setEngineId] = useState<string>("stable-diffusion-xl-1024-v1-0");
 
   const generateVideo = async (options: VideoGenerationOptions) => {
     setIsGenerating(true);
     setError(null);
     setVideoUrl(null);
     setGenerationProgress(10);
+    
+    // Store the engine ID for later use
+    setEngineId(options.engineId || "stable-diffusion-xl-1024-v1-0");
 
     try {
       // Prepare image data - either from file or url
@@ -34,14 +42,18 @@ export const useStabilityVideoGeneration = () => {
         imageData = await fileToDataUri(options.imageSource);
       }
 
-      console.log("Iniciando geração de vídeo com Stability API");
+      console.log(`Iniciando geração de vídeo com Stability API (Engine: ${options.engineId || "stable-diffusion-xl-1024-v1-0"})`);
       
       // Call the Supabase Edge Function to initiate video generation
       const { data, error: initError } = await supabase.functions.invoke("generate-stability-video", {
         body: {
           image: imageData,
           motionBucketId: options.motionBucketId || 127,
-          prompt: options.prompt || ""
+          prompt: options.prompt || "",
+          engineId: options.engineId || "stable-diffusion-xl-1024-v1-0",
+          width: options.width || 1024,
+          height: options.height || 1024,
+          steps: options.steps || 30
         }
       });
 
@@ -71,7 +83,8 @@ export const useStabilityVideoGeneration = () => {
           
           const { data: statusData, error: statusError } = await supabase.functions.invoke("check-stability-video", {
             body: {
-              id: data.id
+              id: data.id,
+              engineId: options.engineId || "stable-diffusion-xl-1024-v1-0"
             }
           });
 
@@ -157,6 +170,7 @@ export const useStabilityVideoGeneration = () => {
     isGenerating,
     generationProgress,
     error,
-    predictionId
+    predictionId,
+    engineId
   };
 };
