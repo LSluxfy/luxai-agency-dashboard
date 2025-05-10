@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
-import { fileToDataUri } from "@/utils/imageUtils";
+import { fileToDataUri, resizeImageToNearestValidDimension } from "@/utils/imageUtils";
 import type { StabilityRequestBody } from "@/components/creative-studio/stable-diffusion/sdConstants";
 
 export const useStableDiffusion = () => {
@@ -53,8 +53,20 @@ export const useStableDiffusion = () => {
       
       // If image file exists, include it for img2img generation
       if (imageFile) {
-        const imageData = await fileToDataUri(imageFile);
-        requestBody = { ...requestBody, initImage: imageData };
+        let imageData = await fileToDataUri(imageFile);
+        
+        // Resize image if using SDXL model to ensure compatible dimensions
+        if (engineId.includes("xl-1024")) {
+          imageData = await resizeImageToNearestValidDimension(imageData, true); // true for SDXL
+        } else {
+          imageData = await resizeImageToNearestValidDimension(imageData, false); // false for SD 1.6
+        }
+        
+        requestBody = { 
+          ...requestBody, 
+          initImage: imageData,
+          imageStrength: 0.35 // Default image strength
+        };
       }
       
       // Call the Supabase Edge Function to generate the image

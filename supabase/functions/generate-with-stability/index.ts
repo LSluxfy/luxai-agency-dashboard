@@ -47,7 +47,7 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt, engineId, initImage, dimensions } = await req.json();
+    const { prompt, engineId, initImage, dimensions, imageStrength } = await req.json();
 
     if (!prompt) {
       return createErrorResponse(
@@ -122,7 +122,10 @@ serve(async (req) => {
       formData.append("cfg_scale", "7");
       formData.append("samples", "1");
       formData.append("steps", "30");
-      formData.append("image_strength", "0.35"); // Controls how much to transform the image
+      
+      // Use provided imageStrength or default
+      const strengthValue = imageStrength !== undefined ? imageStrength : 0.35;
+      formData.append("image_strength", String(strengthValue));
       
       // For stable-diffusion-v1-6, no clip_guidance_preset is needed
       if (!engine.includes("v1-6")) {

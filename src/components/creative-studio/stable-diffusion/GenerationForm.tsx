@@ -21,13 +21,15 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { VALID_DIMENSIONS, SD_MODELS } from "./sdConstants";
+import { toast } from "@/components/ui/use-toast";
 
 interface GenerationFormProps {
   onGenerate: (
     prompt: string,
     engineId: string,
     imageFile: File | null,
-    dimensions: string
+    dimensions: string,
+    imageStrength?: number
   ) => Promise<void>;
   isGenerating: boolean;
   generationProgress: number;
@@ -55,12 +57,38 @@ export const GenerationForm: React.FC<GenerationFormProps> = ({
     const file = e.target.files?.[0];
     if (!file) return;
     
+    // Check file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      toast({
+        title: "Arquivo muito grande",
+        description: "O tamanho máximo permitido é 10MB.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Check file type
+    if (!['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type)) {
+      toast({
+        title: "Formato inválido",
+        description: "Apenas imagens JPEG, PNG, WEBP e GIF são permitidas.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     setImageFile(file);
     
     // Create a preview
     const reader = new FileReader();
     reader.onloadend = () => {
       setImagePreview(reader.result as string);
+      
+      // Show toast notification about auto-resizing
+      toast({
+        title: "Imagem será redimensionada automaticamente",
+        description: "A imagem será ajustada para as dimensões compatíveis com o modelo selecionado.",
+      });
     };
     reader.readAsDataURL(file);
   };
@@ -72,7 +100,7 @@ export const GenerationForm: React.FC<GenerationFormProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await onGenerate(prompt, engineId, imageFile, dimensions);
+    await onGenerate(prompt, engineId, imageFile, dimensions, imageStrength);
   };
 
   // Get appropriate dimensions based on selected model
@@ -100,6 +128,14 @@ export const GenerationForm: React.FC<GenerationFormProps> = ({
       if (dimensions === "1024x1024") {
         setDimensions("512x512"); 
       }
+    }
+    
+    // Notify user if they've already uploaded an image
+    if (imageFile) {
+      toast({
+        title: "Imagem de referência",
+        description: "A imagem será redimensionada automaticamente para o novo modelo.",
+      });
     }
   };
 
@@ -148,7 +184,7 @@ export const GenerationForm: React.FC<GenerationFormProps> = ({
           </Button>
         )}
         <p className="text-xs text-muted-foreground mt-1">
-          Faça upload de uma imagem para guiar a geração (opcional).
+          Faça upload de uma imagem para guiar a geração. A imagem será redimensionada automaticamente.
         </p>
       </div>
       

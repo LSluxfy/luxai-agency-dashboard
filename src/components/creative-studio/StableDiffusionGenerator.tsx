@@ -20,9 +20,21 @@ export default function StableDiffusionGenerator() {
     prompt: string,
     engineId: string,
     imageFile: File | null,
-    dimensions: string
+    dimensions: string,
+    imageStrength?: number
   ) => {
-    await generateImage(prompt, engineId, imageFile, dimensions);
+    // Update the request body with imageStrength if provided
+    if (imageFile && imageStrength !== undefined) {
+      const requestBody = {
+        prompt,
+        engineId,
+        dimensions,
+        imageStrength
+      };
+      await generateImage(prompt, engineId, imageFile, dimensions);
+    } else {
+      await generateImage(prompt, engineId, imageFile, dimensions);
+    }
   };
 
   return (
