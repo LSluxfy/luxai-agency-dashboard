@@ -129,8 +129,9 @@ serve(async (req) => {
     console.log(`Enviando requisição para a API Stability para geração de image-to-video (${engineId})`);
     console.log(`Usando dimensões: ${width}x${height}, steps: ${steps}`);
     
-    // Updated endpoint for v1beta SVD (different from v2beta)
-    let endpointPath = `/v1/generation/${engineId}/image-to-video`;
+    // Use the correct endpoint for SVD (image-to-video)
+    // The correct endpoint is under /v1/generation/{engine_id}/image-to-video
+    const endpointPath = `/v1/generation/${engineId}/image-to-video`;
     
     const endpoint = `${STABILITY_API_HOST}${endpointPath}`;
     console.log(`Usando endpoint: ${endpoint}`);
@@ -167,6 +168,10 @@ serve(async (req) => {
         }
       } catch (textError) {
         console.error("Falha ao obter texto do erro:", textError);
+      }
+      
+      if (response.status === 404) {
+        errorMessage = "O modelo de vídeo não foi encontrado. Verifique se o modelo está habilitado na sua conta Stability AI.";
       }
       
       console.error("Erro da API Stability:", errorMessage);

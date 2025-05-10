@@ -155,7 +155,14 @@ export const useStabilityVideoGeneration = () => {
 
     } catch (err: any) {
       console.error("Erro ao gerar vídeo:", err);
-      setError(err.message || "Erro ao gerar vídeo");
+      
+      // Handle 404 error specially for better user experience
+      let errorMessage = err.message || "Erro ao gerar vídeo";
+      if (errorMessage.includes("404") || errorMessage.includes("not found") || errorMessage.includes("não foi encontrado")) {
+        errorMessage = "O modelo de vídeo não foi encontrado. Verifique se o modelo está habilitado na sua conta Stability AI.";
+      }
+      
+      setError(errorMessage);
       setIsGenerating(false);
       setGenerationProgress(0);
       toast.error("Erro ao iniciar a geração de vídeo");
