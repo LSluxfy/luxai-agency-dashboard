@@ -92,9 +92,18 @@ serve(async (req) => {
       // Default is 512x512 for SD 1.6 if not specified
     }
     
+    console.log(`Request received for mode: ${generationMode}, engine: ${engine}, dimensions: ${width}x${height}`);
+    
     // Determine which generation mode to use
     switch (generationMode) {
       case "upscale":
+        if (!initImage) {
+          return createErrorResponse(
+            "missing_image",
+            "missing_required_field",
+            ["Para o modo de upscale, uma imagem é obrigatória"]
+          );
+        }
         return handleUpscale(initImage, prompt, engine);
       case "edit":
         if (!initImage || !maskImage) {
@@ -178,52 +187,7 @@ async function handleTextToImage(prompt, engine, width, height) {
     body: JSON.stringify(requestBody)
   });
   
-  if (!response.ok) {
-    // Try to parse as JSON first
-    let errorData;
-    try {
-      errorData = await response.json();
-      console.error(`API Error (Status ${response.status}):`, JSON.stringify(errorData));
-    } catch (e) {
-      const errorText = await response.text();
-      console.error(`API Error (Status ${response.status}):`, errorText);
-      
-      return createErrorResponse(
-        `stability_api_error_${Date.now()}`,
-        "stability_api_error",
-        [errorText || `API Error: ${response.statusText}`],
-        response.status
-      );
-    }
-    
-    return createErrorResponse(
-      errorData.id || `stability_api_error_${Date.now()}`,
-      errorData.name || "stability_api_error",
-      errorData.message ? [errorData.message] : ["Erro na API de geração de imagem"],
-      response.status
-    );
-  }
-  
-  const responseData = await response.json();
-  console.log("Generation successful");
-  
-  // The response includes an array of generated images
-  if (responseData.artifacts && responseData.artifacts.length > 0) {
-    // Get the first generated image and convert from base64 to data URI
-    const base64Image = responseData.artifacts[0].base64;
-    const imageUrl = `data:image/png;base64,${base64Image}`;
-    
-    return new Response(
-      JSON.stringify({ imageUrl }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-  } else {
-    return createErrorResponse(
-      "no_image_generated",
-      "generation_failed",
-      ["Nenhuma imagem foi gerada"]
-    );
-  }
+  return handleStabilityResponse(response);
 }
 
 /**
@@ -303,7 +267,7 @@ async function handleUpscale(initImage, prompt, engine) {
   
   // Add optional text prompt if provided
   if (prompt && prompt.trim()) {
-    formData.append("text_guidance", prompt);
+    formData.append("prompt", prompt);
   }
   
   // Configure upscale parameters
@@ -311,7 +275,7 @@ async function handleUpscale(initImage, prompt, engine) {
   formData.append("width", "2048");  // Default upscale width
   
   // Send request to Stability API for upscaling
-  const endpoint = `${STABILITY_API_HOST}/v1/generation/${engine}/image-to-image/upscale`;
+  const endpoint = `${STABILITY_API_HOST}/v1/generation/${engine}/upscale`;
   console.log(`Calling Stability API upscale endpoint: ${endpoint}`);
   
   const response = await fetch(endpoint, {
@@ -362,7 +326,9 @@ async function handleImageEdit(initImage, maskImage, prompt, engine, imageStreng
   
   // Use provided imageStrength or default to higher value for edits
   const strengthValue = imageStrength !== undefined ? imageStrength : 0.7;
-  formData.append("image_strength", String(strengthValue));
+  
+  // IMPORTANT: For masking endpoint, we use mask_source to control the edit area
+  formData.append("mask_source", "MASK_IMAGE_WHITE");
   
   // For stable-diffusion-v1-6, no clip_guidance_preset is needed
   if (!engine.includes("v1-6")) {
@@ -417,8 +383,8 @@ async function handleControlNet(controlImage, prompt, engine, controlMode, width
   formData.append("width", String(width));
   formData.append("height", String(height));
   
-  // Set the control mode
-  formData.append("control_mode", controlMode || "canny");
+  // Set the control mode (type of processing to apply to the control image)
+  formData.append("control_type", controlMode || "canny");
   
   // Send request to Stability API for control net
   const endpoint = `${STABILITY_API_HOST}/v1/generation/${engine}/image-to-image/control`;
