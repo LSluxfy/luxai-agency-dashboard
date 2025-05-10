@@ -96,7 +96,14 @@ export const useStabilityVideoGeneration = () => {
           console.log("Resposta de status:", statusData);
           
           if (statusData.status === "succeeded") {
+            // Success! We have our image
+            clearInterval(interval);
+            setPollingInterval(null);
+            setReplicatePredictionId(null);
+            setPollingCount(0);
             setGenerationProgress(100);
+
+            // Store video URL
             setVideoUrl(statusData.videoUrl);
             setIsGenerating(false);
             toast.success("Vídeo gerado com sucesso!");
@@ -163,6 +170,13 @@ export const useStabilityVideoGeneration = () => {
       reader.readAsDataURL(file);
     });
   };
+
+  // These variables might be undefined in the original code but used in the checkStatus function
+  // Adding them here to make the hook work correctly
+  const [pollingInterval, setPollingInterval] = useState<number | null>(null);
+  const [replicatePredictionId, setReplicatePredictionId] = useState<string | null>(null);
+  const [pollingCount, setPollingCount] = useState<number>(0);
+  const [currentModel, setCurrentModel] = useState<string | null>(null);
 
   return {
     generateVideo,

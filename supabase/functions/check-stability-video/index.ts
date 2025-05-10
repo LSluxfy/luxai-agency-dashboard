@@ -38,8 +38,8 @@ serve(async (req) => {
     // Make request to Stability API to check status
     console.log(`Verificando status da geração de vídeo com ID: ${id} (Engine: ${engineId})`);
     
-    // Endpoint atualizado para a versão v2beta
-    const endpoint = `${STABILITY_API_HOST}/v2beta/stable-video-diffusion/image-to-video/result/${id}`;
+    // Updated endpoint for v1 API (different from v2beta)
+    const endpoint = `${STABILITY_API_HOST}/v1/generation/${engineId}/image-to-video/result/${id}`;
     console.log(`Usando endpoint: ${endpoint}`);
     
     const response = await fetch(endpoint, {

@@ -129,14 +129,10 @@ serve(async (req) => {
     console.log(`Enviando requisição para a API Stability para geração de image-to-video (${engineId})`);
     console.log(`Usando dimensões: ${width}x${height}, steps: ${steps}`);
     
-    // Use text-to-image if no image is provided (technically should never happen due to validation)
-    let endpointPath = "image-to-video";
-    if (engineId === "stable-diffusion-xl-1024-v1-0") {
-      endpointPath = "image-to-video"; // For SDXL 1.0
-    }
+    // Updated endpoint for v1beta SVD (different from v2beta)
+    let endpointPath = `/v1/generation/${engineId}/image-to-video`;
     
-    // Endpoint para SVD (Stable Video Diffusion)
-    const endpoint = `${STABILITY_API_HOST}/v2beta/stable-video-diffusion/${endpointPath}`;
+    const endpoint = `${STABILITY_API_HOST}${endpointPath}`;
     console.log(`Usando endpoint: ${endpoint}`);
     
     const response = await fetch(endpoint, {

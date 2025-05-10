@@ -27,13 +27,14 @@ const CreativeStudio = () => {
           <span className="bg-gradient-to-r from-purple-500 to-blue-500 text-white px-2 py-0.5 rounded-sm">Novo!</span>{" "}
           Modelo Stable Diffusion XL para geração de imagens ultra-realistas, SVD para vídeos a partir de imagens e WAN 2.1 para geração de vídeo.
         </p>
-        {/* Updated troubleshooting hint */}
+        {/* Updated troubleshooting hint with API v1 information */}
         <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-md">
           <h3 className="text-amber-800 font-medium">Dicas para melhores resultados</h3>
           <p className="text-amber-700 text-sm">
             • Use imagens claras e com boa qualidade para melhores resultados<br/>
             • O Stable Diffusion XL oferece imagens de alta qualidade em até 1024x1024<br/>
-            • O Stable Video Diffusion (SVD) agora suporta tanto SDXL 1.0 quanto SD 1.6<br/>
+            • O Stable Video Diffusion (SVD) usa a API v1 do Stability AI<br/>
+            • Disponível para SDXL 1.0 e SD 1.6 com diferentes opções de resolução<br/>
             • Prompts detalhados ajudam a obter resultados mais precisos<br/>
             • A geração de imagens e vídeos pode levar alguns segundos para ser concluída
           </p>
