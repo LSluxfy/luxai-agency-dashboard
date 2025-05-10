@@ -60,26 +60,41 @@ serve(async (req) => {
     // Default engine if not specified
     const engine = engineId || "stable-diffusion-xl-1024-v1-0";
     
-    // Validate dimensions
-    let width = 1024;
-    let height = 1024;
+    // Validate dimensions for SDXL models
+    let width = 512;
+    let height = 512;
     
-    if (dimensions) {
-      // Check if the provided dimensions are valid
-      if (!VALID_SDXL_DIMENSIONS.includes(dimensions)) {
-        return createErrorResponse(
-          "invalid_sdxl_dimensions",
-          "invalid_sdxl_v1_dimensions",
-          [
-            `Para os modelos stable-diffusion-xl-1024-v0-9 e stable-diffusion-xl-1024-v1-0, as dimensões permitidas são ${VALID_SDXL_DIMENSIONS.join(', ')}, mas recebemos ${dimensions}`
-          ]
-        );
+    if (engine.includes("xl-1024")) {
+      // SDXL model has specific dimension requirements
+      if (dimensions) {
+        // Check if the provided dimensions are valid for SDXL
+        if (!VALID_SDXL_DIMENSIONS.includes(dimensions)) {
+          return createErrorResponse(
+            "invalid_sdxl_dimensions",
+            "invalid_sdxl_v1_dimensions",
+            [
+              `Para os modelos stable-diffusion-xl-1024-v0-9 e stable-diffusion-xl-1024-v1-0, as dimensões permitidas são ${VALID_SDXL_DIMENSIONS.join(', ')}, mas recebemos ${dimensions}`
+            ]
+          );
+        }
+        
+        // Parse the dimensions
+        const [w, h] = dimensions.split("x").map(Number);
+        width = w;
+        height = h;
+      } else {
+        // Default for SDXL if not specified
+        width = 1024;
+        height = 1024;
       }
-      
-      // Parse the dimensions
-      const [w, h] = dimensions.split("x").map(Number);
-      width = w;
-      height = h;
+    } else {
+      // For non-SDXL models like stable-diffusion-v1-6
+      if (dimensions) {
+        const [w, h] = dimensions.split("x").map(Number);
+        width = w;
+        height = h;
+      }
+      // Default is 512x512 for SD 1.6 if not specified
     }
     
     // Determine if we're doing text-to-image or image-to-image
@@ -105,10 +120,14 @@ serve(async (req) => {
       formData.append("text_prompts[1][text]", "low quality, blurry, poorly rendered, disfigured, deformed, ugly");
       formData.append("text_prompts[1][weight]", "-1");
       formData.append("cfg_scale", "7");
-      formData.append("clip_guidance_preset", "FAST_BLUE");
       formData.append("samples", "1");
       formData.append("steps", "30");
       formData.append("image_strength", "0.35"); // Controls how much to transform the image
+      
+      // For stable-diffusion-v1-6, no clip_guidance_preset is needed
+      if (!engine.includes("v1-6")) {
+        formData.append("clip_guidance_preset", "FAST_BLUE");
+      }
       
       // Send request to Stability API
       const endpoint = `${STABILITY_API_HOST}/v1/generation/${engine}/image-to-image`;
@@ -124,14 +143,25 @@ serve(async (req) => {
       });
       
       if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        const errorText = await response.text().catch(() => "Unknown error");
-        console.error(`API Error (Status ${response.status}):`, errorText);
+        let errorData = null;
+        let errorText = "Unknown error";
+        
+        try {
+          errorData = await response.json();
+          console.error(`API Error (Status ${response.status}):`, JSON.stringify(errorData));
+        } catch (e) {
+          try {
+            errorText = await response.text();
+            console.error(`API Error (Status ${response.status}):`, errorText);
+          } catch (e2) {
+            console.error(`API Error (Status ${response.status}): Could not parse response`);
+          }
+        }
         
         return createErrorResponse(
           errorData?.id || `stability_api_error_${Date.now()}`,
           errorData?.name || "stability_api_error",
-          errorData?.message ? [errorData.message] : ["Erro na API de geração de imagem"],
+          errorData?.message ? [errorData.message] : [`Erro na API de geração de imagem: ${errorText}`],
           response.status
         );
       }
@@ -171,12 +201,16 @@ serve(async (req) => {
           }
         ],
         cfg_scale: 7,
-        clip_guidance_preset: "FAST_BLUE",
         height: height,
         width: width,
         samples: 1,
         steps: 30,
       };
+      
+      // Add clip_guidance_preset for SDXL models only
+      if (!engine.includes("v1-6")) {
+        requestBody.clip_guidance_preset = "FAST_BLUE";
+      }
       
       const endpoint = `${STABILITY_API_HOST}/v1/generation/${engine}/text-to-image`;
       console.log(`Calling Stability API endpoint: ${endpoint}`);
@@ -196,6 +230,7 @@ serve(async (req) => {
         let errorData;
         try {
           errorData = await response.json();
+          console.error(`API Error (Status ${response.status}):`, JSON.stringify(errorData));
         } catch (e) {
           const errorText = await response.text();
           console.error(`API Error (Status ${response.status}):`, errorText);
@@ -207,8 +242,6 @@ serve(async (req) => {
             response.status
           );
         }
-        
-        console.error(`API Error (Status ${response.status}):`, errorData);
         
         return createErrorResponse(
           errorData.id || `stability_api_error_${Date.now()}`,

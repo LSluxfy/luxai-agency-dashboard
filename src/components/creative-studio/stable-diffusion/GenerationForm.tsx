@@ -75,13 +75,41 @@ export const GenerationForm: React.FC<GenerationFormProps> = ({
     await onGenerate(prompt, engineId, imageFile, dimensions);
   };
 
+  // Get appropriate dimensions based on selected model
+  const getDimensionsOptions = () => {
+    if (engineId.includes("xl-1024")) {
+      // SDXL models use specific dimensions
+      return VALID_DIMENSIONS.filter(dim => dim.sdxl);
+    } else {
+      // SD 1.6 and other models can use any dimensions
+      return VALID_DIMENSIONS;
+    }
+  };
+
+  // Update dimensions when model changes to ensure compatibility
+  const handleEngineChange = (value: string) => {
+    setEngineId(value);
+    
+    // Set appropriate default dimensions for the model
+    if (value.includes("xl-1024")) {
+      if (!dimensions.includes("1024") && !VALID_DIMENSIONS.find(d => d.sdxl && d.value === dimensions)) {
+        setDimensions("1024x1024");
+      }
+    } else {
+      // For SD 1.6, default to 512x512 if coming from SDXL
+      if (dimensions === "1024x1024") {
+        setDimensions("512x512"); 
+      }
+    }
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <Label htmlFor="engine-select">Modelo</Label>
         <Select 
           value={engineId} 
-          onValueChange={setEngineId}
+          onValueChange={handleEngineChange}
           disabled={isGenerating}
         >
           <SelectTrigger id="engine-select" className="w-full">
@@ -157,13 +185,18 @@ export const GenerationForm: React.FC<GenerationFormProps> = ({
                     <SelectValue placeholder="Selecione as dimensões" />
                   </SelectTrigger>
                   <SelectContent>
-                    {VALID_DIMENSIONS.map((dim) => (
+                    {getDimensionsOptions().map((dim) => (
                       <SelectItem key={dim.value} value={dim.value}>
                         {dim.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {engineId.includes("xl-1024") 
+                    ? "Modelos SDXL exigem dimensões específicas"
+                    : "Stable Diffusion 1.6 é mais flexível com dimensões"}
+                </p>
               </div>
             )}
 
