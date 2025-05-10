@@ -25,11 +25,23 @@ serve(async (req) => {
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
+
+    // Check if API key is configured
+    if (!STABILITY_API_KEY) {
+      console.error("STABILITY_API_KEY is not configured");
+      return new Response(
+        JSON.stringify({ error: "Chave da API Stability não configurada" }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
+    }
     
     // Make request to Stability API to check status
-    console.log(`Checking status for video generation with ID: ${id}`);
+    console.log(`Verificando status da geração de vídeo com ID: ${id}`);
     
-    const response = await fetch(`${STABILITY_API_HOST}/v2beta/stable-video/image-to-video/result/${id}`, {
+    const endpoint = `${STABILITY_API_HOST}/v2beta/stable-video/image-to-video/result/${id}`;
+    console.log(`Usando endpoint: ${endpoint}`);
+    
+    const response = await fetch(endpoint, {
       method: "GET",
       headers: {
         "Authorization": `Bearer ${STABILITY_API_KEY}`,
@@ -37,44 +49,46 @@ serve(async (req) => {
       },
     });
     
-    // Use text() to get the response body first
-    const responseText = await response.text();
-    
+    // Handle non-successful responses
     if (!response.ok) {
-      // Try to parse the error if possible
-      let errorMessage = `API Error (${response.status}): ${response.statusText}`;
-      
-      try {
-        const errorData = JSON.parse(responseText);
-        if (errorData.message) {
-          errorMessage = errorData.message;
-        }
-      } catch (e) {
-        // If parsing fails, use the response text
-        console.error("Failed to parse error response:", e);
-      }
-      
-      console.error("Stability API error:", errorMessage);
-      
       // If we get a 404, it might mean the generation is still in queue or processing
       if (response.status === 404) {
         return new Response(
-          JSON.stringify({ status: "processing", message: "Geração em fila" }),
+          JSON.stringify({ 
+            status: "processing", 
+            message: "Geração em fila ou em processamento" 
+          }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
       
+      let errorMessage = `Erro da API (${response.status}): ${response.statusText}`;
+      
+      try {
+        // Try to get detailed error message if available
+        const errorData = await response.json();
+        errorMessage = errorData.message || errorMessage;
+      } catch (parseError) {
+        // If response is not JSON or has invalid JSON
+        console.error("Erro ao analisar resposta de erro:", parseError);
+        
+        // Try to get error text if JSON parsing fails
+        try {
+          const errorText = await response.text();
+          console.log("Texto da resposta de erro:", errorText);
+          errorMessage = `Erro da API (${response.status}): ${errorText.substring(0, 200)}`;
+        } catch (textError) {
+          console.error("Também falhou ao obter texto do erro:", textError);
+        }
+      }
+      
+      console.error("Erro da API Stability:", errorMessage);
       throw new Error(errorMessage);
     }
     
-    // Parse the text response
-    let result;
-    try {
-      result = JSON.parse(responseText);
-    } catch (e) {
-      console.error("Failed to parse response:", responseText);
-      throw new Error("Invalid response from Stability API");
-    }
+    // Parse the response as JSON
+    const result = await response.json();
+    console.log("Resposta de verificação de status:", result);
     
     // Prepare response based on generation status
     let responseData = {
@@ -92,7 +106,7 @@ serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error("Error in check-stability-video function:", error);
+    console.error("Erro na função check-stability-video:", error);
     return new Response(
       JSON.stringify({ error: error.message || "Um erro inesperado ocorreu" }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }

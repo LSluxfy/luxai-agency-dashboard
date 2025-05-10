@@ -34,6 +34,8 @@ export const useStabilityVideoGeneration = () => {
         imageData = await fileToDataUri(options.imageSource);
       }
 
+      console.log("Iniciando geração de vídeo com Stability API");
+      
       // Call the Supabase Edge Function to initiate video generation
       const { data, error: initError } = await supabase.functions.invoke("generate-stability-video", {
         body: {
@@ -44,24 +46,29 @@ export const useStabilityVideoGeneration = () => {
       });
 
       if (initError) {
+        console.error("Erro ao invocar a função generate-stability-video:", initError);
         throw new Error(`Erro ao iniciar geração: ${initError.message}`);
       }
 
       if (!data?.id) {
+        console.error("Resposta da função sem ID:", data);
         throw new Error("Não foi possível iniciar a geração de vídeo");
       }
 
+      console.log("Geração iniciada com ID:", data.id);
       setPredictionId(data.id);
       setGenerationProgress(20);
 
       // Start polling for results
       let attempts = 0;
-      const maxAttempts = 60; // 5 minutes with 5 second intervals
+      const maxAttempts = 60; // 5 minutos com intervalos de 5 segundos
       
       const checkStatus = async () => {
         attempts++;
         
         try {
+          console.log(`Verificando status da geração (tentativa ${attempts}/${maxAttempts})`);
+          
           const { data: statusData, error: statusError } = await supabase.functions.invoke("check-stability-video", {
             body: {
               id: data.id
@@ -69,9 +76,12 @@ export const useStabilityVideoGeneration = () => {
           });
 
           if (statusError) {
+            console.error("Erro ao verificar status:", statusError);
             throw new Error(`Erro ao verificar status: ${statusError.message}`);
           }
 
+          console.log("Resposta de status:", statusData);
+          
           if (statusData.status === "succeeded") {
             setProgress(100);
             setVideoUrl(statusData.videoUrl);
@@ -88,7 +98,7 @@ export const useStabilityVideoGeneration = () => {
             setProgress(progressValue);
             
             if (attempts < maxAttempts) {
-              setTimeout(checkStatus, 5000); // Poll every 5 seconds
+              setTimeout(checkStatus, 5000); // Verificar a cada 5 segundos
             } else {
               throw new Error("Tempo limite excedido. A geração está demorando muito.");
             }
@@ -103,6 +113,7 @@ export const useStabilityVideoGeneration = () => {
             }
           }
         } catch (err: any) {
+          console.error("Erro ao verificar status:", err);
           setError(err.message || "Erro ao verificar status da geração");
           setIsGenerating(false);
           toast({
@@ -114,9 +125,10 @@ export const useStabilityVideoGeneration = () => {
       };
 
       // Start polling
-      setTimeout(checkStatus, 5000); // First check after 5 seconds
+      setTimeout(checkStatus, 5000); // Primeira verificação após 5 segundos
 
     } catch (err: any) {
+      console.error("Erro ao gerar vídeo:", err);
       setError(err.message || "Erro ao gerar vídeo");
       setIsGenerating(false);
       setGenerationProgress(0);

@@ -25,6 +25,15 @@ serve(async (req) => {
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
+
+    // Check if API key is configured
+    if (!STABILITY_API_KEY) {
+      console.error("STABILITY_API_KEY is not configured");
+      return new Response(
+        JSON.stringify({ error: "Chave da API Stability não configurada" }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
+    }
     
     // Prepare payload based on image source type
     const formData = new FormData();
@@ -44,7 +53,7 @@ serve(async (req) => {
       // It's a URL, fetch the image first
       const imageResponse = await fetch(image);
       if (!imageResponse.ok) {
-        throw new Error(`Failed to fetch image from URL: ${imageResponse.status}`);
+        throw new Error(`Falha ao buscar imagem da URL: ${imageResponse.status}`);
       }
       const imageBlob = await imageResponse.blob();
       formData.append('image', imageBlob, 'image.png');
@@ -60,9 +69,12 @@ serve(async (req) => {
     }
     
     // Make request to Stability API
-    console.log("Sending request to Stability API for image-to-video generation");
+    console.log("Enviando requisição para a API Stability para geração de image-to-video");
     
-    const response = await fetch(`${STABILITY_API_HOST}/v2beta/stable-video/image-to-video`, {
+    const endpoint = `${STABILITY_API_HOST}/v2beta/stable-video/image-to-video`;
+    console.log(`Usando endpoint: ${endpoint}`);
+    
+    const response = await fetch(endpoint, {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${STABILITY_API_KEY}`,
@@ -71,45 +83,46 @@ serve(async (req) => {
       body: formData,
     });
     
-    // Important: Don't consume the response body twice
-    const responseText = await response.text();
-    
+    // Handle non-successful responses
     if (!response.ok) {
-      let errorMessage = `API Error (${response.status}): ${response.statusText}`;
+      let errorMessage = `Erro da API (${response.status}): ${response.statusText}`;
       
       try {
-        // Try to parse the error message if it's JSON
-        const errorData = JSON.parse(responseText);
-        if (errorData.message) {
-          errorMessage = errorData.message;
+        // Try to get detailed error message if available
+        const errorData = await response.json();
+        errorMessage = errorData.message || errorMessage;
+      } catch (parseError) {
+        // If response is not JSON or has invalid JSON
+        console.error("Erro ao analisar resposta de erro:", parseError);
+        
+        // Try to get error text if JSON parsing fails
+        try {
+          const errorText = await response.text();
+          console.log("Texto da resposta de erro:", errorText);
+          errorMessage = `Erro da API (${response.status}): ${errorText.substring(0, 200)}`;
+        } catch (textError) {
+          console.error("Também falhou ao obter texto do erro:", textError);
         }
-      } catch (e) {
-        // If parsing fails, use the raw response text
-        console.error("Failed to parse error response:", e);
       }
       
-      console.error("Stability API error:", errorMessage);
+      console.error("Erro da API Stability:", errorMessage);
       throw new Error(errorMessage);
     }
     
-    // Parse the text response
-    let result;
-    try {
-      result = JSON.parse(responseText);
-    } catch (e) {
-      console.error("Failed to parse response:", responseText);
-      throw new Error("Invalid response from Stability API");
-    }
+    // Parse the response as JSON (should be successful at this point)
+    const responseData = await response.json();
+    
+    console.log("Resposta bem-sucedida da API Stability:", responseData);
     
     return new Response(
       JSON.stringify({ 
-        id: result.id,
-        status: result.status 
+        id: responseData.id,
+        status: responseData.status 
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error("Error in generate-stability-video function:", error);
+    console.error("Erro na função generate-stability-video:", error);
     return new Response(
       JSON.stringify({ error: error.message || "Um erro inesperado ocorreu" }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
