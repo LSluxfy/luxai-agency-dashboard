@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Card } from "@/components/ui/card";
-import { VideoCamera } from "lucide-react";
+import { Video } from "lucide-react";
 import VideoFileUpload from "@/components/creative-studio/video/VideoFileUpload";
 import VideoUrlInput from "@/components/creative-studio/video/VideoUrlInput";
 import VideoViewer from "@/components/creative-studio/video/VideoViewer";
@@ -61,7 +61,7 @@ export function GenerateWanVideoButton() {
   return (
     <>
       <Button variant="default" onClick={() => setOpen(true)} className="flex gap-2">
-        <VideoCamera className="h-4 w-4" />
+        <Video className="h-4 w-4" />
         Criar Video com WAN 2.1
       </Button>
       
@@ -115,7 +115,7 @@ export function GenerateWanVideoButton() {
                 ) : (
                   <div className="border rounded-lg p-8 h-full flex items-center justify-center bg-slate-50">
                     <div className="text-center text-muted-foreground">
-                      <VideoCamera className="mx-auto h-12 w-12 mb-3 opacity-30" />
+                      <Video className="mx-auto h-12 w-12 mb-3 opacity-30" />
                       <p>O vídeo gerado aparecerá aqui</p>
                       <p className="text-xs mt-2">
                         O processo leva aproximadamente 30-60 segundos
