@@ -71,16 +71,35 @@ serve(async (req) => {
       body: formData,
     });
     
+    // Important: Don't consume the response body twice
+    const responseText = await response.text();
+    
     if (!response.ok) {
-      const errorData = await response.json().catch(() => null);
-      console.error("Stability API error:", errorData || await response.text());
-      throw new Error(
-        errorData?.message || 
-        `API Error (${response.status}): ${response.statusText}`
-      );
+      let errorMessage = `API Error (${response.status}): ${response.statusText}`;
+      
+      try {
+        // Try to parse the error message if it's JSON
+        const errorData = JSON.parse(responseText);
+        if (errorData.message) {
+          errorMessage = errorData.message;
+        }
+      } catch (e) {
+        // If parsing fails, use the raw response text
+        console.error("Failed to parse error response:", e);
+      }
+      
+      console.error("Stability API error:", errorMessage);
+      throw new Error(errorMessage);
     }
     
-    const result = await response.json();
+    // Parse the text response
+    let result;
+    try {
+      result = JSON.parse(responseText);
+    } catch (e) {
+      console.error("Failed to parse response:", responseText);
+      throw new Error("Invalid response from Stability API");
+    }
     
     return new Response(
       JSON.stringify({ 
