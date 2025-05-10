@@ -29,7 +29,8 @@ export const useStableDiffusion = () => {
     prompt: string,
     engineId: string,
     imageFile: File | null = null,
-    dimensions: string = "1024x1024"
+    dimensions: string = "1024x1024",
+    imageStrength?: number
   ) => {
     if (!prompt || prompt.trim() === "") {
       toast({
@@ -53,21 +54,26 @@ export const useStableDiffusion = () => {
       
       // If image file exists, include it for img2img generation
       if (imageFile) {
+        // Get the image data
         let imageData = await fileToDataUri(imageFile);
         
-        // Resize image if using SDXL model to ensure compatible dimensions
+        // Resize image to ensure compatible dimensions
         if (engineId.includes("xl-1024")) {
           imageData = await resizeImageToNearestValidDimension(imageData, true); // true for SDXL
         } else {
           imageData = await resizeImageToNearestValidDimension(imageData, false); // false for SD 1.6
         }
         
+        // Add image data and strength to the request
         requestBody = { 
           ...requestBody, 
           initImage: imageData,
-          imageStrength: 0.35 // Default image strength
+          // Use provided imageStrength or default to 0.35
+          imageStrength: imageStrength !== undefined ? imageStrength : 0.35
         };
       }
+      
+      console.log("Sending generation request with prompt:", prompt, "and engineId:", engineId);
       
       // Call the Supabase Edge Function to generate the image
       const { data, error } = await supabase.functions.invoke("generate-with-stability", {

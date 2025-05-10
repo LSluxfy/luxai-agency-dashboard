@@ -23,18 +23,17 @@ export default function StableDiffusionGenerator() {
     dimensions: string,
     imageStrength?: number
   ) => {
-    // Update the request body with imageStrength if provided
-    if (imageFile && imageStrength !== undefined) {
-      const requestBody = {
-        prompt,
-        engineId,
-        dimensions,
-        imageStrength
-      };
-      await generateImage(prompt, engineId, imageFile, dimensions);
-    } else {
-      await generateImage(prompt, engineId, imageFile, dimensions);
-    }
+    // Create a request with all parameters
+    const requestBody = {
+      prompt,
+      engineId,
+      dimensions,
+      // Only include imageStrength if it's provided
+      ...(imageStrength !== undefined && { imageStrength })
+    };
+    
+    // Call generate with all required parameters
+    await generateImage(prompt, engineId, imageFile, dimensions, imageStrength);
   };
 
   return (

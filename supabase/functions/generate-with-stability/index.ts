@@ -132,6 +132,9 @@ serve(async (req) => {
         formData.append("clip_guidance_preset", "FAST_BLUE");
       }
       
+      // Log the key request parameters
+      console.log(`Image-to-image with prompt: "${prompt}", engine: ${engine}, strength: ${strengthValue}`);
+      
       // Send request to Stability API
       const endpoint = `${STABILITY_API_HOST}/v1/generation/${engine}/image-to-image`;
       console.log(`Calling Stability API endpoint: ${endpoint}`);
@@ -191,6 +194,7 @@ serve(async (req) => {
       // Text-to-image generation
       console.log("Text-to-image generation");
       console.log(`Using dimensions: ${width}x${height}`);
+      console.log(`Text-to-image with prompt: "${prompt}", engine: ${engine}`);
       
       const requestBody = {
         text_prompts: [
