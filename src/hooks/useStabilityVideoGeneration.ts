@@ -20,8 +20,8 @@ export const useStabilityVideoGeneration = () => {
   const [predictionId, setPredictionId] = useState<string | null>(null);
   const [generationProgress, setGenerationProgress] = useState<number>(0);
   const [engineId, setEngineId] = useState<string>("stable-diffusion-xl-1024-v1-0");
-  // Define polling related state variables at the beginning
-  const [pollingTimeout, setPollingTimeout] = useState<number | null>(null);
+  // Define polling related state variables with correct types
+  const [pollingTimeout, setPollingTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
   const [pollingCount, setPollingCount] = useState<number>(0);
 
   const generateVideo = async (options: VideoGenerationOptions) => {
