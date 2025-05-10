@@ -42,23 +42,28 @@ serve(async (req) => {
     // Default engine if not specified
     const engine = engineId || "stable-diffusion-xl-1024-v1-0";
     
-    // Parse dimensions or use default
+    // Validate dimensions
     let width = 1024;
     let height = 1024;
     
-    if (dimensions && VALID_SDXL_DIMENSIONS.includes(dimensions)) {
+    if (dimensions) {
+      // Check if the provided dimensions are valid
+      if (!VALID_SDXL_DIMENSIONS.includes(dimensions)) {
+        return new Response(
+          JSON.stringify({ 
+            id: "invalid_sdxl_dimensions",
+            name: "invalid_sdxl_v1_dimensions",
+            error: "Dimensões inválidas para SDXL",
+            validDimensions: VALID_SDXL_DIMENSIONS
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        );
+      }
+      
+      // Parse the dimensions
       const [w, h] = dimensions.split("x").map(Number);
       width = w;
       height = h;
-    } else if (dimensions) {
-      // If dimensions were provided but invalid, return an error
-      return new Response(
-        JSON.stringify({ 
-          error: "Dimensões inválidas",
-          validDimensions: VALID_SDXL_DIMENSIONS
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-      );
     }
     
     // Determine if we're doing text-to-image or image-to-image
