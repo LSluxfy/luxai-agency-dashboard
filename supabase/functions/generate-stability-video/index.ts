@@ -71,7 +71,7 @@ serve(async (req) => {
     // Make request to Stability API
     console.log("Enviando requisição para a API Stability para geração de image-to-video");
     
-    const endpoint = `${STABILITY_API_HOST}/v2beta/stable-video/image-to-video`;
+    const endpoint = `${STABILITY_API_HOST}/v1/generation/stable-video-diffusion/image-to-video`;
     console.log(`Usando endpoint: ${endpoint}`);
     
     const response = await fetch(endpoint, {
@@ -88,21 +88,22 @@ serve(async (req) => {
       let errorMessage = `Erro da API (${response.status}): ${response.statusText}`;
       
       try {
-        // Try to get detailed error message if available
-        const errorData = await response.json();
-        errorMessage = errorData.message || errorMessage;
-      } catch (parseError) {
-        // If response is not JSON or has invalid JSON
-        console.error("Erro ao analisar resposta de erro:", parseError);
+        // Try to get text response first
+        const errorText = await response.text();
+        console.log("Texto da resposta de erro:", errorText);
         
-        // Try to get error text if JSON parsing fails
         try {
-          const errorText = await response.text();
-          console.log("Texto da resposta de erro:", errorText);
+          // Try to parse as JSON if possible
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.message || errorMessage;
+          console.error("Erro da API Stability (JSON):", errorData);
+        } catch (jsonError) {
+          // Not valid JSON, use the text response
           errorMessage = `Erro da API (${response.status}): ${errorText.substring(0, 200)}`;
-        } catch (textError) {
-          console.error("Também falhou ao obter texto do erro:", textError);
+          console.error("Erro da API Stability (texto):", errorText);
         }
+      } catch (textError) {
+        console.error("Falha ao obter texto do erro:", textError);
       }
       
       console.error("Erro da API Stability:", errorMessage);

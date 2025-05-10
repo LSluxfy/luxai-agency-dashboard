@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 
 interface VideoGenerationOptions {
   imageSource: File | string;
@@ -83,19 +83,16 @@ export const useStabilityVideoGeneration = () => {
           console.log("Resposta de status:", statusData);
           
           if (statusData.status === "succeeded") {
-            setProgress(100);
+            setGenerationProgress(100);
             setVideoUrl(statusData.videoUrl);
             setIsGenerating(false);
-            toast({
-              title: "Sucesso",
-              description: "Vídeo gerado com sucesso!",
-            });
+            toast.success("Vídeo gerado com sucesso!");
             return;
           } else if (statusData.status === "failed") {
             throw new Error(`Falha na geração: ${statusData.error || "Erro desconhecido"}`);
           } else if (statusData.status === "processing") {
             const progressValue = Math.min(20 + (attempts * 60 / maxAttempts), 90);
-            setProgress(progressValue);
+            setGenerationProgress(progressValue);
             
             if (attempts < maxAttempts) {
               setTimeout(checkStatus, 5000); // Verificar a cada 5 segundos
@@ -104,7 +101,7 @@ export const useStabilityVideoGeneration = () => {
             }
           } else {
             const progressValue = Math.min(20 + (attempts * 60 / maxAttempts), 85);
-            setProgress(progressValue);
+            setGenerationProgress(progressValue);
             
             if (attempts < maxAttempts) {
               setTimeout(checkStatus, 5000);
@@ -116,11 +113,7 @@ export const useStabilityVideoGeneration = () => {
           console.error("Erro ao verificar status:", err);
           setError(err.message || "Erro ao verificar status da geração");
           setIsGenerating(false);
-          toast({
-            title: "Erro",
-            description: "Erro na geração do vídeo",
-            variant: "destructive",
-          });
+          toast.error("Erro na geração do vídeo");
         }
       };
 
@@ -132,11 +125,7 @@ export const useStabilityVideoGeneration = () => {
       setError(err.message || "Erro ao gerar vídeo");
       setIsGenerating(false);
       setGenerationProgress(0);
-      toast({
-        title: "Erro",
-        description: "Erro ao iniciar a geração de vídeo",
-        variant: "destructive",
-      });
+      toast.error("Erro ao iniciar a geração de vídeo");
     }
   };
 
