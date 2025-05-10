@@ -28,45 +28,78 @@ serve(async (req) => {
 
     // Default engine if not specified
     const engine = engineId || "stable-diffusion-xl-1024-v1-0";
-    const headers = {
-      "Authorization": `Bearer ${STABILITY_API_KEY}`,
-      "Content-Type": "application/json",
-      "Accept": "application/json"
-    };
-
-    let requestBody;
-    let endpoint;
-
+    
     // Determine if we're doing text-to-image or image-to-image
     if (initImage && initImage.startsWith('data:image')) {
       console.log("Image-to-image generation");
-      endpoint = `${STABILITY_API_HOST}/v1/generation/${engine}/image-to-image`;
       
       // Extract the base64 part of the data URI
       const base64Data = initImage.split(',')[1];
       
-      requestBody = {
-        text_prompts: [
-          {
-            text: prompt,
-            weight: 1
-          },
-          {
-            text: "low quality, blurry, poorly rendered, disfigured, deformed, ugly",
-            weight: -1
-          }
-        ],
-        image: base64Data,
-        cfg_scale: 7,
-        clip_guidance_preset: "FAST_BLUE",
-        samples: 1,
-        steps: 30,
-      };
-    } else {
-      console.log("Text-to-image generation");
-      endpoint = `${STABILITY_API_HOST}/v1/generation/${engine}/text-to-image`;
+      // Convert base64 to binary
+      const binaryData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
       
-      requestBody = {
+      // Create a FormData object for the multipart/form-data request
+      const formData = new FormData();
+      
+      // Add the image as a file
+      const imageBlob = new Blob([binaryData], { type: 'image/png' });
+      formData.append("init_image", imageBlob, "image.png");
+      
+      // Add other parameters as regular form fields
+      formData.append("text_prompts[0][text]", prompt);
+      formData.append("text_prompts[0][weight]", "1");
+      formData.append("text_prompts[1][text]", "low quality, blurry, poorly rendered, disfigured, deformed, ugly");
+      formData.append("text_prompts[1][weight]", "-1");
+      formData.append("cfg_scale", "7");
+      formData.append("clip_guidance_preset", "FAST_BLUE");
+      formData.append("samples", "1");
+      formData.append("steps", "30");
+      
+      // Send request to Stability API
+      const endpoint = `${STABILITY_API_HOST}/v1/generation/${engine}/image-to-image`;
+      console.log(`Calling Stability API endpoint: ${endpoint}`);
+      
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${STABILITY_API_KEY}`,
+          // No Content-Type header - it will be set automatically with the FormData boundary
+        },
+        body: formData
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`API Error (Status ${response.status}):`, errorText);
+        return new Response(
+          JSON.stringify({ error: `API Error: ${response.statusText}`, details: errorText }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: response.status }
+        );
+      }
+      
+      const responseData = await response.json();
+      
+      if (responseData.artifacts && responseData.artifacts.length > 0) {
+        // Get the first generated image and convert from base64 to data URI
+        const base64Image = responseData.artifacts[0].base64;
+        const imageUrl = `data:image/png;base64,${base64Image}`;
+        
+        return new Response(
+          JSON.stringify({ imageUrl }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      } else {
+        return new Response(
+          JSON.stringify({ error: "Nenhuma imagem foi gerada" }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        );
+      }
+    } else {
+      // Text-to-image generation
+      console.log("Text-to-image generation");
+      
+      const requestBody = {
         text_prompts: [
           {
             text: prompt,
@@ -84,42 +117,48 @@ serve(async (req) => {
         samples: 1,
         steps: 30,
       };
-    }
-
-    console.log(`Calling Stability API endpoint: ${endpoint}`);
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: headers,
-      body: JSON.stringify(requestBody)
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`API Error (Status ${response.status}):`, errorText);
-      return new Response(
-        JSON.stringify({ error: `API Error: ${response.statusText}`, details: errorText }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: response.status }
-      );
-    }
-
-    const responseData = await response.json();
-    console.log("Generation successful");
-    
-    // The response includes an array of generated images
-    if (responseData.artifacts && responseData.artifacts.length > 0) {
-      // Get the first generated image and convert from base64 to data URI
-      const base64Image = responseData.artifacts[0].base64;
-      const imageUrl = `data:image/png;base64,${base64Image}`;
       
-      return new Response(
-        JSON.stringify({ imageUrl }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    } else {
-      return new Response(
-        JSON.stringify({ error: "Nenhuma imagem foi gerada" }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-      );
+      const endpoint = `${STABILITY_API_HOST}/v1/generation/${engine}/text-to-image`;
+      console.log(`Calling Stability API endpoint: ${endpoint}`);
+      
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${STABILITY_API_KEY}`,
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: JSON.stringify(requestBody)
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`API Error (Status ${response.status}):`, errorText);
+        return new Response(
+          JSON.stringify({ error: `API Error: ${response.statusText}`, details: errorText }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: response.status }
+        );
+      }
+      
+      const responseData = await response.json();
+      console.log("Generation successful");
+      
+      // The response includes an array of generated images
+      if (responseData.artifacts && responseData.artifacts.length > 0) {
+        // Get the first generated image and convert from base64 to data URI
+        const base64Image = responseData.artifacts[0].base64;
+        const imageUrl = `data:image/png;base64,${base64Image}`;
+        
+        return new Response(
+          JSON.stringify({ imageUrl }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      } else {
+        return new Response(
+          JSON.stringify({ error: "Nenhuma imagem foi gerada" }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        );
+      }
     }
   } catch (error) {
     console.error("Error in generate-with-stability function:", error);
