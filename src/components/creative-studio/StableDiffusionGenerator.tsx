@@ -1,8 +1,8 @@
 
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { useStableDiffusion } from "@/hooks/useStableDiffusion";
-import { GenerationForm } from "@/components/creative-studio/stable-diffusion/GenerationForm";
+import { useEnhancedStableDiffusion } from "@/hooks/useEnhancedStableDiffusion";
+import { EnhancedGenerationForm } from "@/components/creative-studio/stable-diffusion/EnhancedGenerationForm";
 import { ImagePreviewArea } from "@/components/creative-studio/stable-diffusion/ImagePreviewArea";
 
 export default function StableDiffusionGenerator() {
@@ -14,26 +14,31 @@ export default function StableDiffusionGenerator() {
     generatedImage,
     generationProgress,
     generateImage,
-  } = useStableDiffusion();
+  } = useEnhancedStableDiffusion();
 
   const handleGenerate = async (
     prompt: string,
     engineId: string,
     imageFile: File | null,
     dimensions: string,
-    imageStrength?: number
+    mode: string,
+    imageStrength?: number,
+    maskImage?: File | null,
+    controlImage?: File | null,
+    controlMode?: string
   ) => {
-    // Create a request with all parameters
-    const requestBody = {
-      prompt,
-      engineId,
-      dimensions,
-      // Only include imageStrength if it's provided
-      ...(imageStrength !== undefined && { imageStrength })
-    };
-    
     // Call generate with all required parameters
-    await generateImage(prompt, engineId, imageFile, dimensions, imageStrength);
+    await generateImage(
+      prompt, 
+      engineId, 
+      imageFile, 
+      dimensions, 
+      mode,
+      imageStrength,
+      maskImage || null,
+      controlImage || null,
+      controlMode
+    );
   };
 
   return (
@@ -42,11 +47,11 @@ export default function StableDiffusionGenerator() {
         <div className="space-y-4">
           <h2 className="text-xl font-bold">Stable Diffusion XL</h2>
           <p className="text-muted-foreground">
-            Gere imagens de alta qualidade com o modelo Stable Diffusion XL da Stability AI.
-            Forneça um prompt detalhado para obter os melhores resultados.
+            Gere e edite imagens de alta qualidade com o modelo Stable Diffusion XL da Stability AI.
+            Agora com opções de upscale, edição com máscara e controle.
           </p>
           
-          <GenerationForm 
+          <EnhancedGenerationForm 
             onGenerate={handleGenerate}
             isGenerating={isGenerating}
             generationProgress={generationProgress}

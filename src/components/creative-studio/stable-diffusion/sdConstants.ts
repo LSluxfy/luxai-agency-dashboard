@@ -25,10 +25,21 @@ export const SD_MODELS = [
   { value: "stable-diffusion-v1-6", label: "Stable Diffusion 1.6" }
 ];
 
+export const SD_MODES = [
+  { value: "generate", label: "Gerar Imagem" },
+  { value: "upscale", label: "Melhorar Resolução" },
+  { value: "edit", label: "Editar Imagem" },
+  { value: "control", label: "Control Net" }
+];
+
 export interface StabilityRequestBody {
   prompt: string;
   engineId?: string;
   dimensions?: string;
   initImage?: string;
   imageStrength?: number;
+  mode?: string;
+  maskImage?: string;
+  controlImage?: string;
+  controlMode?: string;
 }
