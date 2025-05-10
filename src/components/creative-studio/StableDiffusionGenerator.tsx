@@ -17,6 +17,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+// Define the request body type
+interface StabilityRequestBody {
+  prompt: string;
+  engineId: string;
+  initImage?: string; // Make initImage optional
+}
+
 export default function StableDiffusionGenerator() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -62,7 +69,7 @@ export default function StableDiffusionGenerator() {
     setGeneratedImage(null);
     
     try {
-      let requestBody = {
+      let requestBody: StabilityRequestBody = {
         prompt: prompt,
         engineId: engineId
       };
