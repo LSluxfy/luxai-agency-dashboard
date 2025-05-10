@@ -10,6 +10,19 @@ const corsHeaders = {
 const STABILITY_API_KEY = "sk-hi1F0aMnM5x78l5jCZoA56ZrxQGsONfFGjBmGpI9LQDZoYdr";
 const STABILITY_API_HOST = "https://api.stability.ai";
 
+// Valid dimensions for SDXL models
+const VALID_SDXL_DIMENSIONS = [
+  "1024x1024",
+  "1152x896",
+  "1216x832",
+  "1344x768", 
+  "1536x640",
+  "640x1536", 
+  "768x1344", 
+  "832x1216", 
+  "896x1152"
+];
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -55,6 +68,10 @@ serve(async (req) => {
       formData.append("clip_guidance_preset", "FAST_BLUE");
       formData.append("samples", "1");
       formData.append("steps", "30");
+      formData.append("image_strength", "0.35"); // Controls how much to transform the image
+      
+      // Use default dimensions for image-to-image (1024x1024)
+      // No need to set width/height as init_image dimensions will be used automatically
       
       // Send request to Stability API
       const endpoint = `${STABILITY_API_HOST}/v1/generation/${engine}/image-to-image`;
@@ -113,7 +130,7 @@ serve(async (req) => {
         cfg_scale: 7,
         clip_guidance_preset: "FAST_BLUE",
         height: 1024,
-        width: 1024,
+        width: 1024, // Using standard 1024x1024 which is supported
         samples: 1,
         steps: 30,
       };

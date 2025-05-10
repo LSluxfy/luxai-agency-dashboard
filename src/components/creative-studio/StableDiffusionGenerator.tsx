@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -16,13 +16,32 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 // Define the request body type
 interface StabilityRequestBody {
   prompt: string;
   engineId: string;
-  initImage?: string; // Make initImage optional
+  initImage?: string; // Optional for image-to-image generation
 }
+
+// Valid dimensions for SDXL models
+const VALID_DIMENSIONS = [
+  { value: "1024x1024", label: "Quadrado (1024x1024)" },
+  { value: "1152x896", label: "Paisagem 9:7 (1152x896)" },
+  { value: "1216x832", label: "Paisagem 3:2 (1216x832)" },
+  { value: "1344x768", label: "Paisagem 7:4 (1344x768)" },
+  { value: "1536x640", label: "Paisagem 12:5 (1536x640)" },
+  { value: "640x1536", label: "Retrato 5:12 (640x1536)" },
+  { value: "768x1344", label: "Retrato 4:7 (768x1344)" },
+  { value: "832x1216", label: "Retrato 2:3 (832x1216)" },
+  { value: "896x1152", label: "Retrato 7:9 (896x1152)" },
+];
 
 export default function StableDiffusionGenerator() {
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -32,6 +51,8 @@ export default function StableDiffusionGenerator() {
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [generationProgress, setGenerationProgress] = useState<number>(0);
   const [engineId, setEngineId] = useState<string>("stable-diffusion-xl-1024-v1-0");
+  const [dimensions, setDimensions] = useState<string>("1024x1024");
+  const [imageStrength, setImageStrength] = useState<string>("0.35");
 
   // Handle image file selection
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -50,6 +71,27 @@ export default function StableDiffusionGenerator() {
     // Reset generated image when new image is selected
     setGeneratedImage(null);
   };
+
+  // Reset the uploaded image
+  const handleResetImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+  };
+
+  // Progress simulation
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    
+    if (isGenerating && generationProgress < 90) {
+      interval = setInterval(() => {
+        setGenerationProgress(prev => Math.min(prev + 5, 90));
+      }, 1000);
+    }
+    
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isGenerating, generationProgress]);
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
@@ -165,6 +207,17 @@ export default function StableDiffusionGenerator() {
                 onChange={handleImageChange}
                 disabled={isGenerating}
               />
+              {imagePreview && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleResetImage} 
+                  className="mt-2"
+                  type="button"
+                >
+                  Remover imagem
+                </Button>
+              )}
               <p className="text-xs text-muted-foreground mt-1">
                 Faça upload de uma imagem para guiar a geração (opcional).
               </p>
@@ -184,6 +237,58 @@ export default function StableDiffusionGenerator() {
                 className="resize-none"
               />
             </div>
+            
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="advanced">
+                <AccordionTrigger className="text-sm">Configurações avançadas</AccordionTrigger>
+                <AccordionContent>
+                  {!imageFile && (
+                    <div className="mb-4">
+                      <Label htmlFor="dimensions" className="block text-sm font-medium mb-2">
+                        Dimensões
+                      </Label>
+                      <Select 
+                        value={dimensions} 
+                        onValueChange={setDimensions}
+                        disabled={isGenerating || !!imageFile}
+                      >
+                        <SelectTrigger id="dimensions" className="w-full">
+                          <SelectValue placeholder="Selecione as dimensões" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {VALID_DIMENSIONS.map((dim) => (
+                            <SelectItem key={dim.value} value={dim.value}>
+                              {dim.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  {imageFile && (
+                    <div className="mb-4">
+                      <Label htmlFor="image-strength" className="block text-sm font-medium mb-2">
+                        Força da imagem original: {imageStrength}
+                      </Label>
+                      <Input 
+                        id="image-strength"
+                        type="range"
+                        min="0.1"
+                        max="0.9"
+                        step="0.05"
+                        value={imageStrength}
+                        onChange={(e) => setImageStrength(e.target.value)}
+                        disabled={isGenerating}
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Valores mais baixos mantêm mais da imagem original, valores mais altos permitem mais criatividade.
+                      </p>
+                    </div>
+                  )}
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
             
             <Button 
               type="submit" 
