@@ -6,14 +6,25 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { Loader2, Wand2 } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
-export default function RealisticVisionGenerator() {
+export default function StableDiffusionGenerator() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [prompt, setPrompt] = useState<string>("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
-  const [predictionId, setPredictionId] = useState<string | null>(null);
+  const [generationProgress, setGenerationProgress] = useState<number>(0);
+  const [engineId, setEngineId] = useState<string>("stable-diffusion-xl-1024-v1-0");
 
   // Handle image file selection
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -37,59 +48,64 @@ export default function RealisticVisionGenerator() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!imageFile) {
-      toast({
-        title: "Erro",
-        description: "Por favor, selecione uma imagem.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
     if (!prompt || prompt.trim() === "") {
       toast({
         title: "Erro",
-        description: "Por favor, digite um prompt para transformar a imagem.",
+        description: "Por favor, digite um prompt para gerar a imagem.",
         variant: "destructive",
       });
       return;
     }
     
     setIsGenerating(true);
+    setGenerationProgress(10);
     setGeneratedImage(null);
     
     try {
-      // Convert the image to a data URL
-      const imageData = imagePreview;
+      let requestBody = {
+        prompt: prompt,
+        engineId: engineId
+      };
+      
+      // If image file exists, include it for img2img generation
+      if (imageFile) {
+        const reader = new FileReader();
+        const imagePromise = new Promise<string>((resolve) => {
+          reader.onloadend = () => {
+            resolve(reader.result as string);
+          };
+          reader.readAsDataURL(imageFile);
+        });
+        
+        const imageData = await imagePromise;
+        requestBody = { ...requestBody, initImage: imageData };
+      }
       
       // Call the Supabase Edge Function to generate the image
-      const { data, error } = await supabase.functions.invoke("generate-with-image", {
-        body: {
-          image: imageData,
-          prompt: prompt,
-          strength: 0.6 // Higher strength means more transformation
-        }
+      const { data, error } = await supabase.functions.invoke("generate-with-stability", {
+        body: requestBody
       });
       
       if (error) {
-        console.error("Error calling function:", error);
-        toast({
-          title: "Erro",
-          description: "Ocorreu um erro ao gerar a imagem. Tente novamente.",
-          variant: "destructive",
-        });
-        setIsGenerating(false);
-        return;
+        throw new Error(error.message || "Erro ao chamar API");
       }
       
-      if (data.prediction && data.prediction.id) {
-        setPredictionId(data.prediction.id);
-        
-        // Start polling for the result
-        await checkPredictionStatus(data.prediction.id);
+      if (data.error) {
+        throw new Error(data.error);
+      }
+      
+      // Update the UI with the generated image
+      if (data.imageUrl) {
+        setGeneratedImage(data.imageUrl);
+        toast({
+          title: "Sucesso",
+          description: "Imagem gerada com sucesso!",
+        });
       } else {
         throw new Error("Resposta inesperada da API");
       }
+      
+      setGenerationProgress(100);
     } catch (error) {
       console.error("Error generating image:", error);
       toast({
@@ -97,77 +113,44 @@ export default function RealisticVisionGenerator() {
         description: `Falha ao gerar imagem: ${error instanceof Error ? error.message : "Erro desconhecido"}`,
         variant: "destructive",
       });
+    } finally {
       setIsGenerating(false);
     }
-  };
-  
-  // Check the status of the prediction
-  const checkPredictionStatus = async (id: string) => {
-    let attempts = 0;
-    const maxAttempts = 60; // 5 minutes (5s intervals)
-    
-    const checkStatus = async () => {
-      try {
-        attempts++;
-        
-        const { data, error } = await supabase.functions.invoke("generate-with-image", {
-          body: { predictionId: id }
-        });
-        
-        if (error) {
-          throw new Error(`Erro ao verificar status: ${error.message}`);
-        }
-        
-        console.log("Status check response:", data);
-        
-        if (data.status === "succeeded" && data.output) {
-          // Handle the successful generation
-          setGeneratedImage(Array.isArray(data.output) ? data.output[0] : data.output);
-          setIsGenerating(false);
-          toast({
-            title: "Sucesso",
-            description: "Imagem gerada com sucesso!",
-          });
-          return;
-        } else if (data.status === "failed") {
-          throw new Error(`Geração falhou: ${data.error || "Erro desconhecido"}`);
-        }
-        
-        // Continue polling if not complete and not reached max attempts
-        if (attempts < maxAttempts) {
-          setTimeout(checkStatus, 5000); // Check every 5 seconds
-        } else {
-          throw new Error("Tempo limite excedido. Tente novamente mais tarde.");
-        }
-      } catch (error) {
-        console.error("Error checking prediction status:", error);
-        toast({
-          title: "Erro",
-          description: `Falha ao verificar status da geração: ${error instanceof Error ? error.message : "Erro desconhecido"}`,
-          variant: "destructive",
-        });
-        setIsGenerating(false);
-      }
-    };
-    
-    await checkStatus();
   };
 
   return (
     <Card>
       <CardContent className="pt-6 grid gap-8 md:grid-cols-2">
         <div className="space-y-4">
-          <h2 className="text-xl font-bold">Transformar Imagem com IA</h2>
+          <h2 className="text-xl font-bold">Stable Diffusion XL</h2>
           <p className="text-muted-foreground">
-            Transforme sua imagem com o modelo Realistic Vision V5. 
-            Carregue uma imagem e descreva como você deseja transformá-la.
+            Gere imagens de alta qualidade com o modelo Stable Diffusion XL da Stability AI.
+            Forneça um prompt detalhado para obter os melhores resultados.
           </p>
           
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="image-upload" className="block text-sm font-medium mb-2">
-                Imagem de Referência
-              </label>
+              <Label htmlFor="engine-select">Modelo</Label>
+              <Select 
+                value={engineId} 
+                onValueChange={setEngineId}
+                disabled={isGenerating}
+              >
+                <SelectTrigger id="engine-select" className="w-full">
+                  <SelectValue placeholder="Selecione o modelo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="stable-diffusion-xl-1024-v1-0">Stable Diffusion XL (1024)</SelectItem>
+                  <SelectItem value="stable-diffusion-xl-beta-v2-2-2">SDXL Beta v2.2.2</SelectItem>
+                  <SelectItem value="stable-diffusion-v1-6">Stable Diffusion 1.6</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label htmlFor="image-upload" className="block text-sm font-medium mb-2">
+                Imagem de Referência (Opcional)
+              </Label>
               <Input
                 id="image-upload"
                 type="file"
@@ -175,35 +158,61 @@ export default function RealisticVisionGenerator() {
                 onChange={handleImageChange}
                 disabled={isGenerating}
               />
+              <p className="text-xs text-muted-foreground mt-1">
+                Faça upload de uma imagem para guiar a geração (opcional).
+              </p>
             </div>
             
             <div>
-              <label htmlFor="prompt" className="block text-sm font-medium mb-2">
-                Prompt de Transformação
-              </label>
+              <Label htmlFor="prompt" className="block text-sm font-medium mb-2">
+                Prompt de Geração
+              </Label>
               <Textarea
                 id="prompt"
-                placeholder="Descreva como você quer transformar a imagem..."
+                placeholder="Descreva em detalhes a imagem que você deseja gerar..."
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 disabled={isGenerating}
-                rows={3}
+                rows={4}
                 className="resize-none"
               />
             </div>
             
-            <Button type="submit" disabled={isGenerating || !imageFile || !prompt.trim()}>
-              {isGenerating ? "Gerando..." : "Gerar Imagem"}
+            <Button 
+              type="submit" 
+              disabled={isGenerating || !prompt.trim()} 
+              className="w-full"
+            >
+              {isGenerating ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Gerando...
+                </>
+              ) : (
+                <>
+                  <Wand2 className="mr-2 h-5 w-5" />
+                  Gerar Imagem
+                </>
+              )}
             </Button>
+            
+            {isGenerating && (
+              <div className="mt-2">
+                <Progress value={generationProgress} className="h-2" />
+                <p className="text-xs text-center mt-1 text-muted-foreground">
+                  {generationProgress}% concluído
+                </p>
+              </div>
+            )}
           </form>
         </div>
         
         <div className="space-y-4">
           <h3 className="font-medium">Visualização</h3>
           <div className="grid gap-4 grid-cols-2">
-            <div>
-              <p className="text-sm text-muted-foreground mb-2">Imagem Original</p>
-              {imagePreview ? (
+            {imagePreview && (
+              <div>
+                <p className="text-sm text-muted-foreground mb-2">Imagem de Referência</p>
                 <div className="border rounded-md overflow-hidden aspect-square">
                   <img
                     src={imagePreview}
@@ -211,14 +220,10 @@ export default function RealisticVisionGenerator() {
                     className="w-full h-full object-cover"
                   />
                 </div>
-              ) : (
-                <div className="border border-dashed rounded-md flex items-center justify-center aspect-square bg-muted">
-                  <p className="text-xs text-muted-foreground">Nenhuma imagem selecionada</p>
-                </div>
-              )}
-            </div>
+              </div>
+            )}
             
-            <div>
+            <div className={imagePreview ? "" : "col-span-2"}>
               <p className="text-sm text-muted-foreground mb-2">Imagem Gerada</p>
               {generatedImage ? (
                 <div className="border rounded-md overflow-hidden aspect-square">
@@ -232,8 +237,8 @@ export default function RealisticVisionGenerator() {
                 <div className="border border-dashed rounded-md flex items-center justify-center aspect-square bg-muted">
                   {isGenerating ? (
                     <div className="flex flex-col items-center gap-2">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                      <p className="text-xs text-muted-foreground">Gerando...</p>
+                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                      <p className="text-xs text-muted-foreground">Gerando imagem...</p>
                     </div>
                   ) : (
                     <p className="text-xs text-muted-foreground">Aguardando geração</p>
@@ -247,7 +252,7 @@ export default function RealisticVisionGenerator() {
             <div className="mt-4">
               <a 
                 href={generatedImage} 
-                download="realistic-vision-generated.png"
+                download="stable-diffusion-xl.png"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm text-primary hover:underline"
