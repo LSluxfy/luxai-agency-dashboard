@@ -22,6 +22,8 @@ export const VALID_DIMENSIONS = [
 
 export const SD_MODELS = [
   { value: "stable-diffusion-xl-1024-v1-0", label: "Stable Diffusion XL 1.0" },
+  { value: "stable-diffusion-xl-beta-v2-2-2", label: "Stable Diffusion XL Beta 2.2.2" },
+  { value: "stable-diffusion-xl-1024-v0-9", label: "Stable Diffusion XL 0.9" },
   { value: "stable-diffusion-v1-6", label: "Stable Diffusion 1.6" }
 ];
 

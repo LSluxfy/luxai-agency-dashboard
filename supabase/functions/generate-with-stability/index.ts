@@ -23,6 +23,14 @@ const VALID_SDXL_DIMENSIONS = [
   "896x1152"
 ];
 
+// List of SDXL models to check for availability
+const SDXL_MODELS = [
+  "stable-diffusion-xl-1024-v1-0",
+  "stable-diffusion-xl-beta-v2-2-2",
+  "stable-diffusion-xl-1024-v0-9",
+  "stable-diffusion-v1-6"
+];
+
 /**
  * Helper function to create standardized error response
  */
@@ -55,7 +63,10 @@ serve(async (req) => {
     // Default engine if not specified
     const engine = engineId || "stable-diffusion-xl-1024-v1-0";
     
-    // Verificar se o modelo SDXL está disponível na API
+    console.log(`Requested model: ${engine}`);
+    
+    // Check if the requested model is available in the Stability API
+    let availableEngines = [];
     try {
       const engineCheck = await fetch(`${STABILITY_API_HOST}/v1/engines/list`, {
         headers: {
@@ -64,40 +75,56 @@ serve(async (req) => {
       });
       
       if (!engineCheck.ok) {
-        console.error(`Erro ao verificar disponibilidade dos modelos: ${engineCheck.status}`);
-      } else {
-        const engines = await engineCheck.json();
-        const engineExists = engines.some(e => e.id === engine);
-        console.log(`Modelos disponíveis: ${engines.map(e => e.id).join(', ')}`);
-        
-        if (!engineExists) {
-          console.warn(`O modelo "${engine}" não está disponível na sua conta Stability AI`);
-          return createErrorResponse(
-            "engine_not_found",
-            "stability_engine_not_available",
-            [`O modelo ${engine} não está disponível na sua conta Stability AI. Por favor, verifique se você tem acesso a este modelo.`],
-            404
-          );
-        }
+        console.error(`Error checking model availability: ${engineCheck.status}`);
+        return createErrorResponse(
+          "api_connection_error",
+          "stability_api_error",
+          [`Error connecting to Stability AI API: ${engineCheck.statusText}`],
+          engineCheck.status
+        );
       }
+      
+      availableEngines = await engineCheck.json();
+      const engineIds = availableEngines.map(e => e.id);
+      console.log(`Available models: ${engineIds.join(', ')}`);
+      
+      const engineExists = engineIds.includes(engine);
+      
+      if (!engineExists) {
+        console.warn(`Model "${engine}" is not available in your Stability AI account`);
+        return createErrorResponse(
+          "engine_not_found",
+          "stability_engine_not_available",
+          [`The model ${engine} is not available in your Stability AI account. Please verify your access to this model.`],
+          404
+        );
+      }
+      
+      console.log(`Model "${engine}" is available, proceeding with generation.`);
     } catch (engineError) {
-      console.error("Erro ao verificar disponibilidade dos modelos:", engineError);
+      console.error("Error checking model availability:", engineError);
+      return createErrorResponse(
+        "api_check_error",
+        "stability_api_check_error",
+        [`Could not verify model availability: ${engineError.message}`],
+        500
+      );
     }
     
     // Validate dimensions for SDXL models
     let width = 512;
     let height = 512;
     
-    if (engine.includes("xl-1024")) {
+    if (engine.includes("xl-1024") || engine.includes("xl-beta")) {
       // SDXL model has specific dimension requirements
       if (dimensions) {
         // Check if the provided dimensions are valid for SDXL
         if (!VALID_SDXL_DIMENSIONS.includes(dimensions)) {
           return createErrorResponse(
             "invalid_sdxl_dimensions",
-            "invalid_sdxl_v1_dimensions",
+            "invalid_sdxl_dimensions",
             [
-              `Para os modelos stable-diffusion-xl-1024-v0-9 e stable-diffusion-xl-1024-v1-0, as dimensões permitidas são ${VALID_SDXL_DIMENSIONS.join(', ')}, mas recebemos ${dimensions}`
+              `For SDXL models, the allowed dimensions are ${VALID_SDXL_DIMENSIONS.join(', ')}, but received ${dimensions}`
             ]
           );
         }
@@ -130,7 +157,7 @@ serve(async (req) => {
           return createErrorResponse(
             "missing_image",
             "missing_required_field",
-            ["Para o modo de upscale, uma imagem é obrigatória"]
+            ["For upscale mode, an image is required"]
           );
         }
         return handleUpscale(initImage, prompt, engine);
@@ -139,7 +166,7 @@ serve(async (req) => {
           return createErrorResponse(
             "missing_image_or_mask",
             "missing_required_field",
-            ["Para o modo de edição, a imagem base e a máscara são obrigatórias"]
+            ["For edit mode, both base image and mask are required"]
           );
         }
         
@@ -156,7 +183,7 @@ serve(async (req) => {
           return createErrorResponse(
             "missing_control_image",
             "missing_required_field",
-            ["Para o modo Control Net, a imagem de controle é obrigatória"]
+            ["For Control Net mode, a control image is required"]
           );
         }
         return handleControlNet(controlImage, prompt, engine, controlMode, width, height);
@@ -175,7 +202,7 @@ serve(async (req) => {
     return createErrorResponse(
       `internal_error_${Date.now()}`,
       "internal_server_error",
-      [error.message || "Erro interno do servidor"],
+      [error.message || "Internal server error"],
       500
     );
   }
@@ -218,7 +245,7 @@ async function handleTextToImage(prompt, engine, width, height) {
   };
   
   // Add clip_guidance_preset for SDXL models only
-  if (engine.includes("xl-1024")) {
+  if (engine.includes("xl-1024") || engine.includes("xl-beta")) {
     requestBody.clip_guidance_preset = "FAST_BLUE";
   }
   
@@ -237,20 +264,20 @@ async function handleTextToImage(prompt, engine, width, height) {
     });
     
     if (!response.ok) {
-      console.error(`Erro na API Stability: ${response.status} ${response.statusText}`);
+      console.error(`Error in Stability API: ${response.status} ${response.statusText}`);
       let errorBody = "";
       try {
         errorBody = await response.text();
-        console.error(`Detalhes do erro: ${errorBody}`);
+        console.error(`Error details: ${errorBody}`);
       } catch (e) {
-        console.error("Não foi possível obter detalhes do erro");
+        console.error("Could not get error details");
       }
       
       if (response.status === 404) {
         return createErrorResponse(
           "engine_not_found",
           "stability_engine_not_available",
-          [`O modelo ${engine} não está disponível na sua conta Stability AI. Verifique se você tem acesso a este modelo.`],
+          [`The model ${engine} is not available in your Stability AI account. Please verify your access to this model.`],
           404
         );
       }
@@ -258,18 +285,18 @@ async function handleTextToImage(prompt, engine, width, height) {
       return createErrorResponse(
         `api_error_${response.status}`,
         "stability_api_error",
-        [`Erro na API do Stability AI: ${response.statusText}`, errorBody],
+        [`Error in Stability AI API: ${response.statusText}`, errorBody],
         response.status
       );
     }
     
     return handleStabilityResponse(response);
   } catch (error) {
-    console.error("Erro na chamada da API:", error);
+    console.error("Error in API call:", error);
     return createErrorResponse(
       "request_failed",
       "stability_request_failed",
-      [`Falha na conexão com a API do Stability AI: ${error.message}`],
+      [`Failed to connect to Stability AI API: ${error.message}`],
       500
     );
   }
@@ -312,7 +339,7 @@ async function handleImageToImage(initImage, prompt, engine, imageStrength) {
   formData.append("image_strength", String(strengthValue));
   
   // For stable-diffusion-v1-6, no clip_guidance_preset is needed
-  if (engine.includes("xl-1024")) {
+  if (engine.includes("xl-1024") || engine.includes("xl-beta")) {
     formData.append("clip_guidance_preset", "FAST_BLUE");
   }
   
@@ -330,20 +357,20 @@ async function handleImageToImage(initImage, prompt, engine, imageStrength) {
     });
     
     if (!response.ok) {
-      console.error(`Erro na API Stability (img2img): ${response.status} ${response.statusText}`);
+      console.error(`Error in Stability API (img2img): ${response.status} ${response.statusText}`);
       let errorBody = "";
       try {
         errorBody = await response.text();
-        console.error(`Detalhes do erro (img2img): ${errorBody}`);
+        console.error(`Error details (img2img): ${errorBody}`);
       } catch (e) {
-        console.error("Não foi possível obter detalhes do erro");
+        console.error("Could not get error details");
       }
       
       if (response.status === 404) {
         return createErrorResponse(
           "engine_not_found",
           "stability_engine_not_available",
-          [`O modelo ${engine} não está disponível para transformação de imagem. Verifique se você tem acesso a este modelo.`],
+          [`The model ${engine} is not available for image transformation. Please verify your access to this model.`],
           404
         );
       }
@@ -351,18 +378,18 @@ async function handleImageToImage(initImage, prompt, engine, imageStrength) {
       return createErrorResponse(
         `api_error_${response.status}`,
         "stability_api_error",
-        [`Erro na API do Stability AI (img2img): ${response.statusText}`, errorBody],
+        [`Error in Stability AI API (img2img): ${response.statusText}`, errorBody],
         response.status
       );
     }
     
     return handleStabilityResponse(response);
   } catch (error) {
-    console.error("Erro na chamada da API (img2img):", error);
+    console.error("Error in API call (img2img):", error);
     return createErrorResponse(
       "request_failed",
       "stability_request_failed",
-      [`Falha na conexão com a API do Stability AI (img2img): ${error.message}`],
+      [`Failed to connect to Stability AI API (img2img): ${error.message}`],
       500
     );
   }
@@ -410,20 +437,20 @@ async function handleUpscale(initImage, prompt, engine) {
     });
     
     if (!response.ok) {
-      console.error(`Erro na API Stability (upscale): ${response.status} ${response.statusText}`);
+      console.error(`Error in Stability API (upscale): ${response.status} ${response.statusText}`);
       let errorBody = "";
       try {
         errorBody = await response.text();
-        console.error(`Detalhes do erro (upscale): ${errorBody}`);
+        console.error(`Error details (upscale): ${errorBody}`);
       } catch (e) {
-        console.error("Não foi possível obter detalhes do erro");
+        console.error("Could not get error details");
       }
       
       if (response.status === 404) {
         return createErrorResponse(
           "upscale_not_available",
           "stability_upscale_not_available",
-          [`O modelo ${engine} não suporta upscale de imagens. Verifique se você está usando um modelo compatível.`],
+          [`The model ${engine} does not support image upscaling. Please check if you're using a compatible model.`],
           404
         );
       }
@@ -431,18 +458,18 @@ async function handleUpscale(initImage, prompt, engine) {
       return createErrorResponse(
         `api_error_${response.status}`,
         "stability_api_error",
-        [`Erro na API do Stability AI (upscale): ${response.statusText}`, errorBody],
+        [`Error in Stability AI API (upscale): ${response.statusText}`, errorBody],
         response.status
       );
     }
     
     return handleStabilityResponse(response);
   } catch (error) {
-    console.error("Erro na chamada da API (upscale):", error);
+    console.error("Error in API call (upscale):", error);
     return createErrorResponse(
       "request_failed",
       "stability_request_failed",
-      [`Falha na conexão com a API do Stability AI (upscale): ${error.message}`],
+      [`Failed to connect to Stability AI API (upscale): ${error.message}`],
       500
     );
   }
@@ -490,7 +517,7 @@ async function handleImageEdit(initImage, maskImage, prompt, engine, imageStreng
   formData.append("mask_source", "MASK_IMAGE_WHITE");
   
   // For stable-diffusion-v1-6, no clip_guidance_preset is needed
-  if (engine.includes("xl-1024")) {
+  if (engine.includes("xl-1024") || engine.includes("xl-beta")) {
     formData.append("clip_guidance_preset", "FAST_BLUE");
   }
   
@@ -508,20 +535,20 @@ async function handleImageEdit(initImage, maskImage, prompt, engine, imageStreng
     });
     
     if (!response.ok) {
-      console.error(`Erro na API Stability (mask): ${response.status} ${response.statusText}`);
+      console.error(`Error in Stability API (mask): ${response.status} ${response.statusText}`);
       let errorBody = "";
       try {
         errorBody = await response.text();
-        console.error(`Detalhes do erro (mask): ${errorBody}`);
+        console.error(`Error details (mask): ${errorBody}`);
       } catch (e) {
-        console.error("Não foi possível obter detalhes do erro");
+        console.error("Could not get error details");
       }
       
       if (response.status === 404) {
         return createErrorResponse(
           "masking_not_available",
           "stability_masking_not_available",
-          [`O modelo ${engine} não suporta edição com máscara. Verifique se você está usando um modelo compatível.`],
+          [`The model ${engine} does not support editing with mask. Please check if you're using a compatible model.`],
           404
         );
       }
@@ -529,18 +556,18 @@ async function handleImageEdit(initImage, maskImage, prompt, engine, imageStreng
       return createErrorResponse(
         `api_error_${response.status}`,
         "stability_api_error",
-        [`Erro na API do Stability AI (mask): ${response.statusText}`, errorBody],
+        [`Error in Stability AI API (mask): ${response.statusText}`, errorBody],
         response.status
       );
     }
     
     return handleStabilityResponse(response);
   } catch (error) {
-    console.error("Erro na chamada da API (mask):", error);
+    console.error("Error in API call (mask):", error);
     return createErrorResponse(
       "request_failed",
       "stability_request_failed",
-      [`Falha na conexão com a API do Stability AI (mask): ${error.message}`],
+      [`Failed to connect to Stability AI API (mask): ${error.message}`],
       500
     );
   }
@@ -596,20 +623,20 @@ async function handleControlNet(controlImage, prompt, engine, controlMode, width
     });
     
     if (!response.ok) {
-      console.error(`Erro na API Stability (control): ${response.status} ${response.statusText}`);
+      console.error(`Error in Stability API (control): ${response.status} ${response.statusText}`);
       let errorBody = "";
       try {
         errorBody = await response.text();
-        console.error(`Detalhes do erro (control): ${errorBody}`);
+        console.error(`Error details (control): ${errorBody}`);
       } catch (e) {
-        console.error("Não foi possível obter detalhes do erro");
+        console.error("Could not get error details");
       }
       
       if (response.status === 404) {
         return createErrorResponse(
           "control_not_available",
           "stability_control_not_available",
-          [`O modelo ${engine} não suporta Control Net. Verifique se você está usando um modelo compatível.`],
+          [`The model ${engine} does not support Control Net. Please check if you're using a compatible model.`],
           404
         );
       }
@@ -617,18 +644,18 @@ async function handleControlNet(controlImage, prompt, engine, controlMode, width
       return createErrorResponse(
         `api_error_${response.status}`,
         "stability_api_error",
-        [`Erro na API do Stability AI (control): ${response.statusText}`, errorBody],
+        [`Error in Stability AI API (control): ${response.statusText}`, errorBody],
         response.status
       );
     }
     
     return handleStabilityResponse(response);
   } catch (error) {
-    console.error("Erro na chamada da API (control):", error);
+    console.error("Error in API call (control):", error);
     return createErrorResponse(
       "request_failed",
       "stability_request_failed",
-      [`Falha na conexão com a API do Stability AI (control): ${error.message}`],
+      [`Failed to connect to Stability AI API (control): ${error.message}`],
       500
     );
   }
@@ -654,15 +681,15 @@ async function handleStabilityResponse(response) {
       return createErrorResponse(
         "no_image_generated",
         "generation_failed",
-        ["Nenhuma imagem foi gerada"]
+        ["No image was generated"]
       );
     }
   } catch (error) {
-    console.error("Erro ao processar resposta da Stability API:", error);
+    console.error("Error processing Stability API response:", error);
     return createErrorResponse(
       "response_parsing_error",
       "stability_response_parsing_error",
-      [`Erro ao processar resposta da API: ${error.message}`],
+      [`Error processing API response: ${error.message}`],
       500
     );
   }

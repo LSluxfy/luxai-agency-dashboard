@@ -60,7 +60,7 @@ export const useStableDiffusion = () => {
         let imageData = await fileToDataUri(imageFile);
         
         // Resize image to ensure compatible dimensions
-        if (engineId.includes("xl-1024")) {
+        if (engineId.includes("xl-1024") || engineId.includes("xl-beta")) {
           imageData = await resizeImageToNearestValidDimension(imageData, true); // true for SDXL
         } else {
           imageData = await resizeImageToNearestValidDimension(imageData, false); // false for SD 1.6
