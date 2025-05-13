@@ -17,7 +17,7 @@ serve(async (req) => {
   }
 
   try {
-    const { id, engineId = "stable-diffusion-xl-1024-v1-0" } = await req.json();
+    const { id, engineId = "stable-video-diffusion" } = await req.json();
     
     if (!id) {
       return new Response(
@@ -35,10 +35,10 @@ serve(async (req) => {
       );
     }
     
-    // Make request to Stability API to check status
+    // Make request to Stability AI API to check status
     console.log(`Verificando status da geração de vídeo com ID: ${id} (Engine: ${engineId})`);
     
-    // Use the correct endpoint for checking status
+    // Use the correct endpoint for the SVD model
     const endpoint = `${STABILITY_API_HOST}/v1/generation/${engineId}/image-to-video/result/${id}`;
     console.log(`Usando endpoint: ${endpoint}`);
     

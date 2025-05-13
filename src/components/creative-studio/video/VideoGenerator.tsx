@@ -27,8 +27,7 @@ const SDXL_DIMENSIONS = [
 
 // Available models
 const MODELS = [
-  { value: "stable-diffusion-xl-1024-v1-0", label: "SDXL 1.0" },
-  { value: "stable-diffusion-v1-6", label: "SD 1.6" }
+  { value: "stable-video-diffusion", label: "Stable Video Diffusion" }
 ];
 
 const VideoGenerator = () => {
@@ -36,12 +35,12 @@ const VideoGenerator = () => {
   const [imageUrl, setImageUrl] = useState<string>("");
   const [prompt, setPrompt] = useState<string>("");
   const [motionAmount, setMotionAmount] = useState<number>(127); // Default middle value
-  const [engineId, setEngineId] = useState<string>("stable-diffusion-xl-1024-v1-0");
+  const [engineId, setEngineId] = useState<string>("stable-video-diffusion");
   const [dimensions, setDimensions] = useState<string>("1024x1024");
   const [width, setWidth] = useState<number>(1024);
   const [height, setHeight] = useState<number>(1024);
   const [steps, setSteps] = useState<number>(30);
-  const [activeTab, setActiveTab] = useState<string>("sdxl");
+  const [activeTab, setActiveTab] = useState<string>("svd");
   
   const {
     generateVideo,
@@ -64,17 +63,10 @@ const VideoGenerator = () => {
   
   const handleTabChange = (value: string) => {
     setActiveTab(value);
-    if (value === "sdxl") {
-      setEngineId("stable-diffusion-xl-1024-v1-0");
-      setDimensions("1024x1024");
-      setWidth(1024);
-      setHeight(1024);
-    } else {
-      setEngineId("stable-diffusion-v1-6");
-      setDimensions("512x512");
-      setWidth(512);
-      setHeight(512);
-    }
+    setEngineId("stable-video-diffusion");
+    setDimensions("1024x1024");
+    setWidth(1024);
+    setHeight(1024);
   };
   
   const handleSDXLDimensionChange = (value: string) => {
@@ -82,18 +74,6 @@ const VideoGenerator = () => {
     const [w, h] = value.split("x").map(Number);
     setWidth(w);
     setHeight(h);
-  };
-  
-  const handleSD16WidthChange = (value: number) => {
-    // Ensure it's a multiple of 64
-    const adjustedWidth = Math.round(value / 64) * 64;
-    setWidth(adjustedWidth);
-  };
-  
-  const handleSD16HeightChange = (value: number) => {
-    // Ensure it's a multiple of 64
-    const adjustedHeight = Math.round(value / 64) * 64;
-    setHeight(adjustedHeight);
   };
   
   const handleGenerateVideo = async () => {
@@ -141,74 +121,19 @@ const VideoGenerator = () => {
               </div>
               
               <div className="mt-4">
-                <h4 className="text-sm font-medium mb-1">Modelo</h4>
-                <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="sdxl">SDXL 1.0</TabsTrigger>
-                    <TabsTrigger value="sd16">SD 1.6</TabsTrigger>
-                  </TabsList>
-                  
-                  <TabsContent value="sdxl" className="mt-2">
-                    <div className="space-y-2">
-                      <h4 className="text-sm font-medium">Dimensões</h4>
-                      <Select value={dimensions} onValueChange={handleSDXLDimensionChange}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione as dimensões" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {SDXL_DIMENSIONS.map((dim) => (
-                            <SelectItem key={dim.value} value={dim.value}>
-                              {dim.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <p className="text-xs text-muted-foreground">
-                        SDXL 1.0 suporta apenas dimensões específicas pré-definidas
-                      </p>
-                    </div>
-                  </TabsContent>
-                  
-                  <TabsContent value="sd16" className="mt-2">
-                    <div className="space-y-4">
-                      <div>
-                        <h4 className="text-sm font-medium">Largura (múltiplos de 64)</h4>
-                        <div className="flex items-center gap-4 mt-1">
-                          <input 
-                            type="range" 
-                            min="320" 
-                            max="1536" 
-                            step="64"
-                            value={width}
-                            onChange={(e) => handleSD16WidthChange(parseInt(e.target.value))}
-                            className="flex-1" 
-                          />
-                          <span className="text-sm min-w-16 text-right">{width}px</span>
-                        </div>
-                      </div>
-                      
-                      <div>
-                        <h4 className="text-sm font-medium">Altura (múltiplos de 64)</h4>
-                        <div className="flex items-center gap-4 mt-1">
-                          <input 
-                            type="range" 
-                            min="320" 
-                            max="1536" 
-                            step="64"
-                            value={height}
-                            onChange={(e) => handleSD16HeightChange(parseInt(e.target.value))}
-                            className="flex-1" 
-                          />
-                          <span className="text-sm min-w-16 text-right">{height}px</span>
-                        </div>
-                      </div>
-                      
-                      <p className="text-xs text-muted-foreground">
-                        SD 1.6 permite dimensões flexíveis (320px-1536px, múltiplos de 64)
-                      </p>
-                    </div>
-                  </TabsContent>
-                </Tabs>
+                <h4 className="text-sm font-medium mb-1">Dimensões</h4>
+                <Select value={dimensions} onValueChange={handleSDXLDimensionChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione as dimensões" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SDXL_DIMENSIONS.map((dim) => (
+                      <SelectItem key={dim.value} value={dim.value}>
+                        {dim.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               
               <div className="mt-4">
@@ -264,7 +189,7 @@ const VideoGenerator = () => {
                   disabled={isGenerating || (!imageFile && !imageUrl)}
                   className="w-full"
                 >
-                  Gerar Vídeo com {engineId === "stable-diffusion-xl-1024-v1-0" ? "SDXL 1.0" : "SD 1.6"}
+                  Gerar Vídeo com Stable Video Diffusion
                 </Button>
               </div>
               
@@ -304,11 +229,11 @@ const VideoGenerator = () => {
           <div className="bg-amber-50 border border-amber-200 p-4 rounded-md">
             <h4 className="font-medium text-amber-800 mb-2">Dicas para melhores resultados:</h4>
             <ul className="text-sm text-amber-700 space-y-1 list-disc pl-5">
-              <li>SDXL 1.0 oferece melhor qualidade, mas suporta apenas dimensões específicas</li>
-              <li>SD 1.6 permite dimensões personalizadas (múltiplos de 64px)</li>
+              <li>Certifique-se de que sua conta Stability AI tenha o modelo SVD ativado</li>
               <li>Imagens com fundos simples geralmente funcionam melhor</li>
               <li>Objetos centralizados e bem definidos produzem movimentos mais naturais</li>
               <li>Pessoas e animais em poses naturais funcionam bem</li>
+              <li>Se ocorrerem erros, verifique se sua conta tem créditos suficientes</li>
             </ul>
           </div>
         </CardContent>

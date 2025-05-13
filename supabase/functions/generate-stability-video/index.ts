@@ -17,7 +17,7 @@ serve(async (req) => {
   }
 
   try {
-    const { image, motionBucketId = 127, prompt = "", engineId = "stable-diffusion-xl-1024-v1-0", width = 1024, height = 1024, steps = 30 } = await req.json();
+    const { image, motionBucketId = 127, prompt = "", engineId = "stable-video-diffusion", width = 1024, height = 1024, steps = 30 } = await req.json();
     
     if (!image) {
       return new Response(
@@ -35,60 +35,39 @@ serve(async (req) => {
       );
     }
     
-    // Validate engine ID
-    const allowedEngines = ["stable-diffusion-xl-1024-v1-0", "stable-diffusion-v1-6"];
-    if (!allowedEngines.includes(engineId)) {
-      return new Response(
-        JSON.stringify({ error: `Engine ID inválido. Use um dos seguintes: ${allowedEngines.join(', ')}` }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-      );
-    }
-    
-    // Validate dimensions based on engine
-    if (engineId === "stable-diffusion-xl-1024-v1-0") {
-      const validDimensions = [
-        "1024x1024", "1152x896", "896x1152", "1216x832", "832x1216",
-        "1344x768", "768x1344", "1536x640", "640x1536"
-      ];
-      const dimensionStr = `${width}x${height}`;
-      
-      if (!validDimensions.includes(dimensionStr)) {
-        return new Response(
-          JSON.stringify({ 
-            error: `Dimensões inválidas para SDXL. Use uma das seguintes: ${validDimensions.join(', ')}` 
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-        );
-      }
-    } else if (engineId === "stable-diffusion-v1-6") {
-      // Validate SD 1.6 dimensions
-      if (width < 320 || height < 320 || width > 1536 || height > 1536) {
-        return new Response(
-          JSON.stringify({ 
-            error: "Para SD 1.6, dimensões devem ser entre 320px e 1536px" 
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-        );
-      }
-      
-      if (width % 64 !== 0 || height % 64 !== 0) {
-        return new Response(
-          JSON.stringify({ 
-            error: "Para SD 1.6, dimensões devem ser múltiplos de 64px" 
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-        );
-      }
-    }
-    
-    // Validate steps (1-50)
-    if (steps < 1 || steps > 50) {
-      return new Response(
-        JSON.stringify({ error: "Número de steps deve estar entre 1 e 50" }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-      );
-    }
+    // Check model availability by getting info about it
+    console.log(`Verificando disponibilidade do modelo: ${engineId}`);
+    try {
+      const availabilityResponse = await fetch(`${STABILITY_API_HOST}/v1/engines/list`, {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${STABILITY_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+      });
 
+      if (!availabilityResponse.ok) {
+        throw new Error(`Falha ao verificar disponibilidade do modelo: ${availabilityResponse.status}`);
+      }
+
+      const engines = await availabilityResponse.json();
+      const engineExists = engines.some((engine: any) => engine.id === engineId);
+      
+      if (!engineExists) {
+        return new Response(
+          JSON.stringify({ 
+            error: `Modelo "${engineId}" não está disponível. Verifique se o modelo está habilitado na sua conta Stability AI.` 
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
+        );
+      }
+      
+      console.log(`Modelo "${engineId}" está disponível.`);
+    } catch (error) {
+      console.error("Erro ao verificar disponibilidade do modelo:", error);
+      // Continue anyway, as the model check might fail for other reasons
+    }
+    
     // Prepare payload based on image source type
     const formData = new FormData();
     
@@ -130,7 +109,6 @@ serve(async (req) => {
     console.log(`Usando dimensões: ${width}x${height}, steps: ${steps}`);
     
     // Use the correct endpoint for SVD (image-to-video)
-    // The correct endpoint is under /v1/generation/{engine_id}/image-to-video
     const endpointPath = `/v1/generation/${engineId}/image-to-video`;
     
     const endpoint = `${STABILITY_API_HOST}${endpointPath}`;
