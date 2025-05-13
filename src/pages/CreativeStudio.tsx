@@ -1,15 +1,15 @@
 
+
 import { useState, useCallback } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
-import CreativeGenerator from "@/components/creative-studio/CreativeGenerator";
 import CreativeGallery from "@/components/creative-studio/CreativeGallery";
 import { GenerateWanVideoButton } from "@/components/creative-studio/GenerateWanVideoButton";
 import StableDiffusionGenerator from "@/components/creative-studio/StableDiffusionGenerator";
 import VideoGenerator from "@/components/creative-studio/video/VideoGenerator";
 
 const CreativeStudio = () => {
-  const [activeTab, setActiveTab] = useState<string>("create");
+  const [activeTab, setActiveTab] = useState<string>("stable-diffusion");
   
   const handleTabChange = useCallback((value: string) => {
     setActiveTab(value);
@@ -42,17 +42,12 @@ const CreativeStudio = () => {
       </header>
       
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        <TabsList className="grid w-full grid-cols-5 mb-6">
-          <TabsTrigger value="create">Criar Novo</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-4 mb-6">
           <TabsTrigger value="stable-diffusion">Stable Diffusion XL</TabsTrigger>
           <TabsTrigger value="stability-video">Image-to-Video</TabsTrigger>
           <TabsTrigger value="wan-video">Vídeo com WAN 2.1</TabsTrigger>
           <TabsTrigger value="gallery">Meus Criativos Salvos</TabsTrigger>
         </TabsList>
-        
-        <TabsContent value="create" className="mt-0">
-          <CreativeGenerator />
-        </TabsContent>
 
         <TabsContent value="stable-diffusion" className="mt-0">
           <StableDiffusionGenerator />
