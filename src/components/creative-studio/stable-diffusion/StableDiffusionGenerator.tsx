@@ -1,11 +1,10 @@
-
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useStableDiffusion } from "@/hooks/useStableDiffusion";
 import { EnhancedGenerationForm } from "./EnhancedGenerationForm";
 import { SD_MODELS } from "./sdConstants";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 import { Download, ExternalLink } from "lucide-react";
 
 const StableDiffusionGenerator = () => {
@@ -36,10 +35,8 @@ const StableDiffusionGenerator = () => {
       await generateImage(prompt, engineId, imageFile, dimensions, imageStrength);
     } catch (error) {
       console.error("Error in generation:", error);
-      toast({
-        title: "Erro na geração",
-        description: error instanceof Error ? error.message : "Erro desconhecido",
-        variant: "destructive"
+      toast.error("Erro na geração", {
+        description: error instanceof Error ? error.message : "Erro desconhecido"
       });
     }
   };
@@ -54,8 +51,7 @@ const StableDiffusionGenerator = () => {
     a.click();
     document.body.removeChild(a);
     
-    toast({
-      title: "Download iniciado",
+    toast.success("Download iniciado", {
       description: "Sua imagem está sendo baixada."
     });
   };
