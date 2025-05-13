@@ -1,29 +1,27 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
-import { fileToDataUri, resizeImageToNearestValidDimension, processImagesToSameDimension } from "@/utils/imageUtils";
-import type { StabilityRequestBody } from "@/components/creative-studio/stable-diffusion/sdConstants";
+import { fileToDataUri, resizeImageToNearestValidDimension } from "@/utils/imageUtils";
 
 export const useEnhancedStableDiffusion = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [generationProgress, setGenerationProgress] = useState<number>(0);
-  
+
   // Progress simulation
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    
-    if (isGenerating && generationProgress < 90) {
-      interval = setInterval(() => {
-        setGenerationProgress(prev => Math.min(prev + 5, 90));
-      }, 1000);
-    }
-    
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [isGenerating, generationProgress]);
+  const simulateProgress = () => {
+    setGenerationProgress(10);
+    let progress = 10;
+    const interval = setInterval(() => {
+      progress += 5;
+      setGenerationProgress(Math.min(progress, 90));
+      if (progress >= 90) {
+        clearInterval(interval);
+      }
+    }, 1000);
+    return interval;
+  };
 
   const generateImage = async (
     prompt: string,
@@ -36,7 +34,7 @@ export const useEnhancedStableDiffusion = () => {
     controlImage: File | null = null,
     controlMode?: string
   ) => {
-    if (mode !== "upscale" && (!prompt || prompt.trim() === "")) {
+    if (!prompt && mode !== "upscale") {
       toast({
         title: "Erro",
         description: "Por favor, digite um prompt para gerar a imagem.",
@@ -45,120 +43,150 @@ export const useEnhancedStableDiffusion = () => {
       return;
     }
     
+    // Validation for specific modes
+    if (mode === "upscale" && !imageFile) {
+      toast({
+        title: "Erro",
+        description: "Por favor, selecione uma imagem para melhorar a resolução.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (mode === "edit" && (!imageFile || !maskImage)) {
+      toast({
+        title: "Erro",
+        description: "Para edição com máscara, é necessário uma imagem e uma máscara.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (mode === "control" && !controlImage) {
+      toast({
+        title: "Erro",
+        description: "Para usar o Control Net, é necessário uma imagem de controle.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsGenerating(true);
-    setGenerationProgress(10);
+    const progressInterval = simulateProgress();
     setGeneratedImage(null);
     
     try {
-      let requestBody: StabilityRequestBody = {
-        prompt: prompt,
-        engineId: engineId,
-        dimensions: dimensions,
-        mode: mode
+      console.log(`Starting ${mode} operation with engine: ${engineId}, dimensions: ${dimensions}`);
+      
+      // Prepare request body
+      const requestBody: any = {
+        prompt,
+        engineId,
+        dimensions,
+        mode
       };
       
-      // Process image files based on mode
-      if (mode === "generate" && imageFile) {
-        // Regular image-to-image generation
+      // Process files if provided
+      if (imageFile) {
         let imageData = await fileToDataUri(imageFile);
         
-        if (engineId.includes("xl-1024")) {
-          imageData = await resizeImageToNearestValidDimension(imageData, true);
-        } else {
-          imageData = await resizeImageToNearestValidDimension(imageData, false);
+        // Only resize for generate and img2img modes
+        if (mode === "generate" || mode === "edit") {
+          const isSDXL = engineId.includes("xl-1024");
+          imageData = await resizeImageToNearestValidDimension(imageData, isSDXL);
         }
         
-        requestBody = { 
-          ...requestBody, 
-          initImage: imageData,
-          imageStrength: imageStrength !== undefined ? imageStrength : 0.35
-        };
-      } 
-      else if (mode === "upscale" && imageFile) {
-        // Upscaling mode
-        let imageData = await fileToDataUri(imageFile);
-        requestBody = { 
-          ...requestBody, 
-          initImage: imageData
-        };
-      }
-      else if (mode === "edit" && imageFile && maskImage) {
-        // Edit mode with mask - ENSURE SAME DIMENSIONS
-        let imageData = await fileToDataUri(imageFile);
-        let maskData = await fileToDataUri(maskImage);
+        requestBody.initImage = imageData;
         
-        // Process both images to ensure they have the same dimensions
-        const isSDXL = engineId.includes("xl-1024");
-        const [processedImage, processedMask] = await processImagesToSameDimension(
-          [imageData, maskData], 
-          isSDXL
-        );
-        
-        requestBody = { 
-          ...requestBody, 
-          initImage: processedImage,
-          maskImage: processedMask,
-          imageStrength: imageStrength !== undefined ? imageStrength : 0.7
-        };
-        
-        console.log("Sending edited images with matching dimensions");
-      }
-      else if (mode === "control" && controlImage) {
-        // Control mode
-        let imageData = await fileToDataUri(controlImage);
-        
-        if (engineId.includes("xl-1024")) {
-          imageData = await resizeImageToNearestValidDimension(imageData, true);
-        } else {
-          imageData = await resizeImageToNearestValidDimension(imageData, false);
+        if (imageStrength !== undefined) {
+          requestBody.imageStrength = imageStrength;
         }
-        
-        requestBody = { 
-          ...requestBody, 
-          controlImage: imageData,
-          controlMode: controlMode || "canny"
-        };
       }
       
-      console.log(`Sending ${mode} request with prompt:`, prompt, "and engineId:", engineId);
+      // Add mask image if provided
+      if (maskImage && mode === "edit") {
+        const maskData = await fileToDataUri(maskImage);
+        requestBody.maskImage = maskData;
+      }
       
-      // Call the Supabase Edge Function to generate the image
+      // Add control image if provided
+      if (controlImage && mode === "control") {
+        const controlData = await fileToDataUri(controlImage);
+        requestBody.controlImage = controlData;
+        requestBody.controlMode = controlMode || "canny";
+      }
+      
+      console.log("Sending request to generate-with-stability function");
+      
+      // Call the Supabase Edge Function
       const { data, error } = await supabase.functions.invoke("generate-with-stability", {
         body: requestBody
       });
       
+      clearInterval(progressInterval);
+      
       if (error) {
-        throw new Error(error.message || "Erro ao chamar API");
+        console.error("Edge function error:", error);
+        throw new Error(error.message || "Erro ao chamar função Edge");
+      }
+      
+      if (data.errors || data.id) {
+        // Structured error response from our Edge Function
+        console.error("API errors:", data.errors || data);
+        
+        let errorMessage = "Erro na API";
+        
+        if (Array.isArray(data.errors) && data.errors.length > 0) {
+          errorMessage = data.errors.join(". ");
+        } else if (typeof data.errors === 'string') {
+          errorMessage = data.errors;
+        } else if (data.name) {
+          errorMessage = `${data.name}: ${Array.isArray(data.errors) ? data.errors.join(". ") : "Erro desconhecido"}`;
+        }
+        
+        throw new Error(errorMessage);
       }
       
       if (data.error) {
+        console.error("General error:", data.error);
         throw new Error(data.error);
       }
       
-      // Update the UI with the generated image
+      // Update UI with generated image
       if (data.imageUrl) {
         setGeneratedImage(data.imageUrl);
         toast({
           title: "Sucesso",
-          description: `Imagem ${mode === "upscale" ? "melhorada" : "gerada"} com sucesso!`,
+          description: `Imagem ${mode === "upscale" ? "ampliada" : "gerada"} com sucesso!`,
         });
+        setGenerationProgress(100);
       } else {
-        throw new Error("Resposta inesperada da API");
+        throw new Error("Não foi possível gerar a imagem");
       }
       
-      setGenerationProgress(100);
     } catch (error) {
-      console.error(`Error in ${mode} operation:`, error);
-      toast({
-        title: "Erro",
-        description: `Falha ao ${
-          mode === "upscale" ? "melhorar" : 
-          mode === "edit" ? "editar" : 
-          mode === "control" ? "controlar" : "gerar"
-        } imagem: ${error instanceof Error ? error.message : "Erro desconhecido"}`,
-        variant: "destructive",
-      });
+      console.error("Error in generateImage:", error);
+      
+      const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
+      
+      // Handle specific error cases
+      if (errorMessage.toLowerCase().includes("não está disponível") || 
+          errorMessage.toLowerCase().includes("not available") ||
+          errorMessage.toLowerCase().includes("engine_not_found")) {
+        toast({
+          title: "Erro de modelo",
+          description: "O modelo selecionado não está disponível na sua conta Stability AI. Verifique se você tem acesso a este modelo ou use outro modelo.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Erro",
+          description: `Falha ao ${mode === "upscale" ? "ampliar" : "gerar"} imagem: ${errorMessage}`,
+          variant: "destructive",
+        });
+      }
     } finally {
+      clearInterval(progressInterval);
       setIsGenerating(false);
     }
   };
@@ -168,7 +196,6 @@ export const useEnhancedStableDiffusion = () => {
     generatedImage,
     generationProgress,
     generateImage,
-    setGenerationProgress,
-    setGeneratedImage,
+    setGeneratedImage
   };
 };
