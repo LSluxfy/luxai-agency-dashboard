@@ -11,6 +11,7 @@ import VideoGenerationProgress from "./VideoGenerationProgress";
 import { useStabilityVideoGeneration } from "@/hooks/useStabilityVideoGeneration";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 // Define valid dimensions for SDXL and SD 1.6
 const SDXL_DIMENSIONS = [
@@ -41,6 +42,7 @@ const VideoGenerator = () => {
   const [height, setHeight] = useState<number>(1024);
   const [steps, setSteps] = useState<number>(30);
   const [activeTab, setActiveTab] = useState<string>("svd");
+  const [apiErrorDetails, setApiErrorDetails] = useState<string | null>(null);
   
   const {
     generateVideo,
@@ -48,17 +50,20 @@ const VideoGenerator = () => {
     isGenerating,
     generationProgress,
     error,
-    predictionId
+    predictionId,
+    pollingCount
   } = useStabilityVideoGeneration();
   
   const handleFileSelected = (file: File) => {
     setImageFile(file);
     setImageUrl(""); // Clear URL when file is selected
+    setApiErrorDetails(null);
   };
   
   const handleUrlEntered = (url: string) => {
     setImageUrl(url);
     setImageFile(null); // Clear file when URL is entered
+    setApiErrorDetails(null);
   };
   
   const handleTabChange = (value: string) => {
@@ -67,6 +72,7 @@ const VideoGenerator = () => {
     setDimensions("1024x1024");
     setWidth(1024);
     setHeight(1024);
+    setApiErrorDetails(null);
   };
   
   const handleSDXLDimensionChange = (value: string) => {
@@ -77,26 +83,32 @@ const VideoGenerator = () => {
   };
   
   const handleGenerateVideo = async () => {
-    if (imageFile) {
-      await generateVideo({
-        imageSource: imageFile,
-        motionBucketId: motionAmount,
-        prompt: prompt,
-        engineId: engineId,
-        width: width,
-        height: height,
-        steps: steps
-      });
-    } else if (imageUrl) {
-      await generateVideo({
-        imageSource: imageUrl,
-        motionBucketId: motionAmount,
-        prompt: prompt,
-        engineId: engineId,
-        width: width,
-        height: height,
-        steps: steps
-      });
+    setApiErrorDetails(null);
+    try {
+      if (imageFile) {
+        await generateVideo({
+          imageSource: imageFile,
+          motionBucketId: motionAmount,
+          prompt: prompt,
+          engineId: engineId,
+          width: width,
+          height: height,
+          steps: steps
+        });
+      } else if (imageUrl) {
+        await generateVideo({
+          imageSource: imageUrl,
+          motionBucketId: motionAmount,
+          prompt: prompt,
+          engineId: engineId,
+          width: width,
+          height: height,
+          steps: steps
+        });
+      }
+    } catch (err: any) {
+      console.error("Erro na interface ao gerar vídeo:", err);
+      setApiErrorDetails(err.message || "Erro desconhecido ao iniciar geração");
     }
   };
   
@@ -189,7 +201,7 @@ const VideoGenerator = () => {
                   disabled={isGenerating || (!imageFile && !imageUrl)}
                   className="w-full"
                 >
-                  Gerar Vídeo com Stable Video Diffusion
+                  {isGenerating ? "Gerando..." : "Gerar Vídeo com Stable Video Diffusion"}
                 </Button>
               </div>
               
@@ -201,11 +213,22 @@ const VideoGenerator = () => {
                 />
               )}
               
-              {error && !isGenerating && (
-                <div className="mt-4 p-3 bg-destructive/10 rounded-md text-sm text-destructive">
-                  <p className="font-medium">Erro:</p>
-                  <p>{error}</p>
-                </div>
+              {(error || apiErrorDetails) && !isGenerating && (
+                <Alert variant="destructive" className="mt-4">
+                  <AlertDescription className="space-y-1">
+                    <p className="font-medium">Erro na geração do vídeo:</p>
+                    <p className="text-sm">{error || apiErrorDetails}</p>
+                    <p className="text-xs mt-1">
+                      Verifique se sua conta Stability AI possui o modelo SVD ativado e tem créditos suficientes.
+                    </p>
+                  </AlertDescription>
+                </Alert>
+              )}
+              
+              {isGenerating && pollingCount > 0 && (
+                <p className="text-xs text-muted-foreground mt-2 text-center">
+                  Verificando status: tentativa {pollingCount}/60
+                </p>
               )}
             </div>
             
@@ -230,10 +253,11 @@ const VideoGenerator = () => {
             <h4 className="font-medium text-amber-800 mb-2">Dicas para melhores resultados:</h4>
             <ul className="text-sm text-amber-700 space-y-1 list-disc pl-5">
               <li>Certifique-se de que sua conta Stability AI tenha o modelo SVD ativado</li>
+              <li>Verifique se você tem créditos suficientes na sua conta Stability AI</li>
+              <li>Se você receber erros 404, provavelmente o modelo não está disponível para sua conta</li>
               <li>Imagens com fundos simples geralmente funcionam melhor</li>
               <li>Objetos centralizados e bem definidos produzem movimentos mais naturais</li>
               <li>Pessoas e animais em poses naturais funcionam bem</li>
-              <li>Se ocorrerem erros, verifique se sua conta tem créditos suficientes</li>
             </ul>
           </div>
         </CardContent>

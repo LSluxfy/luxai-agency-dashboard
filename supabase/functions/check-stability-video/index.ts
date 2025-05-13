@@ -42,75 +42,89 @@ serve(async (req) => {
     const endpoint = `${STABILITY_API_HOST}/v1/generation/${engineId}/image-to-video/result/${id}`;
     console.log(`Usando endpoint: ${endpoint}`);
     
-    const response = await fetch(endpoint, {
-      method: "GET",
-      headers: {
-        "Authorization": `Bearer ${STABILITY_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-    });
-    
-    // Handle non-successful responses
-    if (!response.ok) {
-      // If we get a 404, it might mean the generation is still in queue or processing
-      if (response.status === 404) {
+    try {
+      const response = await fetch(endpoint, {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${STABILITY_API_KEY}`,
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+      });
+      
+      // Get full response text for better error diagnosis
+      const responseText = await response.text();
+      console.log(`Resposta (status ${response.status}):`, responseText);
+      
+      // Handle non-successful responses
+      if (!response.ok) {
+        // If we get a 404, it might mean the generation is still in queue or processing
+        if (response.status === 404) {
+          return new Response(
+            JSON.stringify({ 
+              status: "processing", 
+              message: "Geração em fila ou em processamento" 
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        
+        let errorMessage = `Erro da API (${response.status})`;
+        
+        try {
+          // Try to parse as JSON if possible
+          const errorData = JSON.parse(responseText);
+          errorMessage = errorData.message || errorMessage;
+        } catch (jsonError) {
+          // Not valid JSON, use the text response
+          errorMessage = `${errorMessage}: ${responseText.substring(0, 200)}`;
+        }
+        
+        console.error("Erro da API Stability:", errorMessage);
+        
         return new Response(
-          JSON.stringify({ 
-            status: "processing", 
-            message: "Geração em fila ou em processamento" 
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          JSON.stringify({ error: errorMessage }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
         );
       }
       
-      let errorMessage = `Erro da API (${response.status}): ${response.statusText}`;
-      let errorData = null;
-      
+      // Try to parse the response as JSON
+      let result;
       try {
-        // Try to get text response first
-        const errorText = await response.text();
-        console.log("Texto da resposta de erro:", errorText);
-        
-        try {
-          if (errorText.trim()) {
-            // Try to parse as JSON if possible
-            errorData = JSON.parse(errorText);
-            errorMessage = errorData.message || errorMessage;
-            console.error("Erro da API Stability (JSON):", errorData);
-          }
-        } catch (jsonError) {
-          // Not valid JSON, use the text response
-          errorMessage = `Erro da API (${response.status}): ${errorText.substring(0, 200)}`;
-          console.error("Erro da API Stability (texto):", errorText);
-        }
-      } catch (textError) {
-        console.error("Falha ao obter texto do erro:", textError);
+        result = JSON.parse(responseText);
+      } catch (jsonError) {
+        console.error("Falha ao analisar resposta como JSON:", jsonError);
+        return new Response(
+          JSON.stringify({ error: "Resposta inválida da API" }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        );
       }
       
-      console.error("Erro da API Stability:", errorMessage);
-      throw new Error(errorMessage);
+      console.log("Resposta de verificação de status (análise):", result);
+      
+      // Prepare response based on generation status
+      let responseData = {
+        status: result.status || "processing",
+        videoUrl: result.video_url || result.video,  // Compatibilidade com diferentes formatos de resposta
+        engineId: engineId,
+        error: null
+      };
+      
+      if (result.status === "failed") {
+        responseData.error = result.error || "Falha na geração sem mensagem de erro";
+      }
+      
+      return new Response(
+        JSON.stringify(responseData),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    } catch (fetchError) {
+      console.error("Erro na requisição para a API Stability:", fetchError);
+      return new Response(
+        JSON.stringify({ error: `Erro na requisição para a API: ${fetchError.message}` }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
     }
-    
-    // Parse the response as JSON
-    const result = await response.json();
-    console.log("Resposta de verificação de status:", result);
-    
-    // Prepare response based on generation status
-    let responseData = {
-      status: result.status,
-      videoUrl: result.video_url || result.video,  // Compatibilidade com diferentes formatos de resposta
-      engineId: engineId,
-      error: null
-    };
-    
-    if (result.status === "failed") {
-      responseData.error = result.error || "Falha na geração sem mensagem de erro";
-    }
-    
-    return new Response(
-      JSON.stringify(responseData),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
   } catch (error) {
     console.error("Erro na função check-stability-video:", error);
     return new Response(

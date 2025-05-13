@@ -65,9 +65,19 @@ export const useStabilityVideoGeneration = () => {
         throw new Error(`Erro ao iniciar geração: ${initError.message}`);
       }
 
-      if (!data?.id) {
+      if (!data) {
+        console.error("Resposta da função sem dados:", data);
+        throw new Error("Não foi possível iniciar a geração de vídeo: resposta vazia");
+      }
+
+      if (data.error) {
+        console.error("Erro retornado pela API:", data.error);
+        throw new Error(`Erro da API Stability: ${data.error}`);
+      }
+
+      if (!data.id) {
         console.error("Resposta da função sem ID:", data);
-        throw new Error("Não foi possível iniciar a geração de vídeo");
+        throw new Error("Não foi possível iniciar a geração de vídeo: ID não recebido");
       }
 
       console.log("Geração iniciada com ID:", data.id);
@@ -96,7 +106,16 @@ export const useStabilityVideoGeneration = () => {
             throw new Error(`Erro ao verificar status: ${statusError.message}`);
           }
 
+          if (!statusData) {
+            console.error("Resposta vazia ao verificar status");
+            throw new Error("Resposta vazia ao verificar status");
+          }
+
           console.log("Resposta de status:", statusData);
+          
+          if (statusData.error) {
+            throw new Error(`Falha na geração: ${statusData.error}`);
+          }
           
           if (statusData.status === "succeeded") {
             // Success! We have our video
@@ -121,12 +140,14 @@ export const useStabilityVideoGeneration = () => {
             if (attempts < maxAttempts) {
               const timeout = setTimeout(checkStatus, 5000); // Verificar a cada 5 segundos
               setPollingTimeout(timeout);
+              setPollingCount(attempts);
             } else {
               throw new Error("Tempo limite excedido. A geração está demorando muito.");
             }
           } else {
             const progressValue = Math.min(20 + (attempts * 60 / maxAttempts), 85);
             setGenerationProgress(progressValue);
+            setPollingCount(attempts);
             
             if (attempts < maxAttempts) {
               const timeout = setTimeout(checkStatus, 5000);
@@ -139,7 +160,9 @@ export const useStabilityVideoGeneration = () => {
           console.error("Erro ao verificar status:", err);
           setError(err.message || "Erro ao verificar status da geração");
           setIsGenerating(false);
-          toast.error("Erro na geração do vídeo");
+          toast.error("Erro na geração do vídeo", {
+            description: err.message || "Erro desconhecido"
+          });
           
           // Clear any existing timeout
           if (pollingTimeout !== null) {
@@ -165,7 +188,9 @@ export const useStabilityVideoGeneration = () => {
       setError(errorMessage);
       setIsGenerating(false);
       setGenerationProgress(0);
-      toast.error("Erro ao iniciar a geração de vídeo");
+      toast.error("Erro ao iniciar a geração de vídeo", {
+        description: errorMessage
+      });
       
       // Clear any existing timeout
       if (pollingTimeout !== null) {
@@ -173,10 +198,6 @@ export const useStabilityVideoGeneration = () => {
         setPollingTimeout(null);
       }
     }
-  };
-
-  const setProgress = (progress: number) => {
-    setGenerationProgress(progress);
   };
 
   // Helper function to convert File to data URI
@@ -204,6 +225,7 @@ export const useStabilityVideoGeneration = () => {
     generationProgress,
     error,
     predictionId,
-    engineId
+    engineId,
+    pollingCount
   };
 };
