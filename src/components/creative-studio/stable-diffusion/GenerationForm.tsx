@@ -21,7 +21,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { VALID_DIMENSIONS, SD_MODELS } from "./sdConstants";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 
 interface GenerationFormProps {
   onGenerate: (
@@ -59,20 +59,16 @@ export const GenerationForm: React.FC<GenerationFormProps> = ({
     
     // Check file size (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
-      toast({
-        title: "Arquivo muito grande",
-        description: "O tamanho máximo permitido é 10MB.",
-        variant: "destructive"
+      toast.error("Arquivo muito grande", {
+        description: "O tamanho máximo permitido é 10MB."
       });
       return;
     }
     
     // Check file type
     if (!['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type)) {
-      toast({
-        title: "Formato inválido",
-        description: "Apenas imagens JPEG, PNG, WEBP e GIF são permitidas.",
-        variant: "destructive"
+      toast.error("Formato inválido", {
+        description: "Apenas imagens JPEG, PNG, WEBP e GIF são permitidas."
       });
       return;
     }
@@ -85,9 +81,8 @@ export const GenerationForm: React.FC<GenerationFormProps> = ({
       setImagePreview(reader.result as string);
       
       // Show toast notification about auto-resizing
-      toast({
-        title: "Imagem será redimensionada automaticamente",
-        description: "A imagem será ajustada para as dimensões compatíveis com o modelo selecionado.",
+      toast.info("Imagem será redimensionada automaticamente", {
+        description: "A imagem será ajustada para as dimensões compatíveis com o modelo selecionado."
       });
     };
     reader.readAsDataURL(file);
@@ -132,9 +127,8 @@ export const GenerationForm: React.FC<GenerationFormProps> = ({
     
     // Notify user if they've already uploaded an image
     if (imageFile) {
-      toast({
-        title: "Imagem de referência",
-        description: "A imagem será redimensionada automaticamente para o novo modelo.",
+      toast.info("Imagem de referência", {
+        description: "A imagem será redimensionada automaticamente para o novo modelo."
       });
     }
   };

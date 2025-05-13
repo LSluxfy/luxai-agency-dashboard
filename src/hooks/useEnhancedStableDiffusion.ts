@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 import { fileToDataUri, resizeImageToNearestValidDimension } from "@/utils/imageUtils";
 
 export const useEnhancedStableDiffusion = () => {
@@ -35,38 +35,30 @@ export const useEnhancedStableDiffusion = () => {
     controlMode?: string
   ) => {
     if (!prompt && mode !== "upscale") {
-      toast({
-        title: "Erro",
-        description: "Por favor, digite um prompt para gerar a imagem.",
-        variant: "destructive",
+      toast.error("Erro", {
+        description: "Por favor, digite um prompt para gerar a imagem."
       });
       return;
     }
     
     // Validation for specific modes
     if (mode === "upscale" && !imageFile) {
-      toast({
-        title: "Erro",
-        description: "Por favor, selecione uma imagem para melhorar a resolução.",
-        variant: "destructive",
+      toast.error("Erro", {
+        description: "Por favor, selecione uma imagem para melhorar a resolução."
       });
       return;
     }
     
     if (mode === "edit" && (!imageFile || !maskImage)) {
-      toast({
-        title: "Erro",
-        description: "Para edição com máscara, é necessário uma imagem e uma máscara.",
-        variant: "destructive",
+      toast.error("Erro", {
+        description: "Para edição com máscara, é necessário uma imagem e uma máscara."
       });
       return;
     }
     
     if (mode === "control" && !controlImage) {
-      toast({
-        title: "Erro",
-        description: "Para usar o Control Net, é necessário uma imagem de controle.",
-        variant: "destructive",
+      toast.error("Erro", {
+        description: "Para usar o Control Net, é necessário uma imagem de controle."
       });
       return;
     }
@@ -155,9 +147,8 @@ export const useEnhancedStableDiffusion = () => {
       // Update UI with generated image
       if (data.imageUrl) {
         setGeneratedImage(data.imageUrl);
-        toast({
-          title: "Sucesso",
-          description: `Imagem ${mode === "upscale" ? "ampliada" : "gerada"} com sucesso!`,
+        toast.success("Sucesso", {
+          description: `Imagem ${mode === "upscale" ? "ampliada" : "gerada"} com sucesso!`
         });
         setGenerationProgress(100);
       } else {
@@ -173,16 +164,12 @@ export const useEnhancedStableDiffusion = () => {
       if (errorMessage.toLowerCase().includes("não está disponível") || 
           errorMessage.toLowerCase().includes("not available") ||
           errorMessage.toLowerCase().includes("engine_not_found")) {
-        toast({
-          title: "Erro de modelo",
-          description: "O modelo selecionado não está disponível na sua conta Stability AI. Verifique se você tem acesso a este modelo ou use outro modelo.",
-          variant: "destructive",
+        toast.error("Erro de modelo", {
+          description: "O modelo selecionado não está disponível na sua conta Stability AI. Verifique se você tem acesso a este modelo ou use outro modelo."
         });
       } else {
-        toast({
-          title: "Erro",
-          description: `Falha ao ${mode === "upscale" ? "ampliar" : "gerar"} imagem: ${errorMessage}`,
-          variant: "destructive",
+        toast.error("Erro", {
+          description: `Falha ao ${mode === "upscale" ? "ampliar" : "gerar"} imagem: ${errorMessage}`
         });
       }
     } finally {

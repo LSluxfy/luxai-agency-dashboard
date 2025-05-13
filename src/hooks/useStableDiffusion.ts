@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 import { fileToDataUri, resizeImageToNearestValidDimension } from "@/utils/imageUtils";
 import type { StabilityRequestBody } from "@/components/creative-studio/stable-diffusion/sdConstants";
 
@@ -34,10 +34,8 @@ export const useStableDiffusion = () => {
     imageStrength?: number
   ) => {
     if (!prompt || prompt.trim() === "") {
-      toast({
-        title: "Erro",
-        description: "Por favor, digite um prompt para gerar a imagem.",
-        variant: "destructive",
+      toast.error("Erro", {
+        description: "Por favor, digite um prompt para gerar a imagem."
       });
       return;
     }
@@ -108,9 +106,8 @@ export const useStableDiffusion = () => {
       // Update the UI with the generated image
       if (data.imageUrl) {
         setGeneratedImage(data.imageUrl);
-        toast({
-          title: "Sucesso",
-          description: "Imagem gerada com sucesso!",
+        toast.success("Sucesso", {
+          description: "Imagem gerada com sucesso!"
         });
       } else {
         throw new Error("Resposta inesperada da API");
@@ -125,16 +122,12 @@ export const useStableDiffusion = () => {
       
       // Handle 404 errors specifically (model not available)
       if (errorMessage.includes("não está disponível") || errorMessage.includes("not available")) {
-        toast({
-          title: "Erro de modelo",
-          description: `O modelo selecionado não está disponível na sua conta Stability AI. Por favor, verifique seu acesso ou use um modelo diferente.`,
-          variant: "destructive",
+        toast.error("Erro de modelo", {
+          description: `O modelo selecionado não está disponível na sua conta Stability AI. Por favor, verifique seu acesso ou use um modelo diferente.`
         });
       } else {
-        toast({
-          title: "Erro",
-          description: `Falha ao gerar imagem: ${errorMessage}`,
-          variant: "destructive",
+        toast.error("Erro", {
+          description: `Falha ao gerar imagem: ${errorMessage}`
         });
       }
     } finally {

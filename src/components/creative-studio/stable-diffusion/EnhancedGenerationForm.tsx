@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,7 +21,7 @@ import {
 } from "@/components/ui/accordion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { VALID_DIMENSIONS, SD_MODELS, SD_MODES } from "./sdConstants";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 
 interface EnhancedGenerationFormProps {
   onGenerate: (
@@ -83,20 +82,16 @@ export const EnhancedGenerationForm: React.FC<EnhancedGenerationFormProps> = ({
     
     // Check file size (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
-      toast({
-        title: "Arquivo muito grande",
-        description: "O tamanho máximo permitido é 10MB.",
-        variant: "destructive"
+      toast.error("Arquivo muito grande", {
+        description: "O tamanho máximo permitido é 10MB."
       });
       return;
     }
     
     // Check file type
     if (!['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type)) {
-      toast({
-        title: "Formato inválido",
-        description: "Apenas imagens JPEG, PNG, WEBP e GIF são permitidas.",
-        variant: "destructive"
+      toast.error("Formato inválido", {
+        description: "Apenas imagens JPEG, PNG, WEBP e GIF são permitidas."
       });
       return;
     }
@@ -107,22 +102,19 @@ export const EnhancedGenerationForm: React.FC<EnhancedGenerationFormProps> = ({
       if (type === 'main') {
         setImageFile(file);
         setImagePreview(reader.result as string);
-        toast({
-          title: "Imagem será redimensionada automaticamente",
+        toast.info("Imagem será redimensionada automaticamente", {
           description: "A imagem será ajustada para as dimensões compatíveis com o modelo selecionado."
         });
       } else if (type === 'mask') {
         setMaskImage(file);
         setMaskPreview(reader.result as string);
-        toast({
-          title: "Máscara adicionada",
+        toast.info("Máscara adicionada", {
           description: "A máscara será usada para edição de imagem."
         });
       } else if (type === 'control') {
         setControlImage(file);
         setControlPreview(reader.result as string);
-        toast({
-          title: "Imagem de controle adicionada",
+        toast.info("Imagem de controle adicionada", {
           description: "A imagem será usada para Control Net."
         });
       }
@@ -148,28 +140,22 @@ export const EnhancedGenerationForm: React.FC<EnhancedGenerationFormProps> = ({
     
     // Validation based on selected mode
     if (mode === "upscale" && !imageFile) {
-      toast({
-        title: "Imagem necessária",
-        description: "Por favor, faça upload de uma imagem para melhorar a resolução.",
-        variant: "destructive"
+      toast.error("Imagem necessária", {
+        description: "Por favor, faça upload de uma imagem para melhorar a resolução."
       });
       return;
     }
     
     if (mode === "edit" && (!imageFile || !maskImage)) {
-      toast({
-        title: "Imagens necessárias",
-        description: "Por favor, faça upload da imagem base e da máscara para edição.",
-        variant: "destructive"
+      toast.error("Imagens necessárias", {
+        description: "Por favor, faça upload da imagem base e da máscara para edição."
       });
       return;
     }
     
     if (mode === "control" && !controlImage) {
-      toast({
-        title: "Imagem de controle necessária",
-        description: "Por favor, faça upload de uma imagem de controle para Control Net.",
-        variant: "destructive"
+      toast.error("Imagem de controle necessária", {
+        description: "Por favor, faça upload de uma imagem de controle para Control Net."
       });
       return;
     }
@@ -216,9 +202,8 @@ export const EnhancedGenerationForm: React.FC<EnhancedGenerationFormProps> = ({
     
     // Notify user if they've already uploaded an image
     if (imageFile) {
-      toast({
-        title: "Imagem de referência",
-        description: "A imagem será redimensionada automaticamente para o novo modelo.",
+      toast.info("Imagem de referência", {
+        description: "A imagem será redimensionada automaticamente para o novo modelo."
       });
     }
   };
