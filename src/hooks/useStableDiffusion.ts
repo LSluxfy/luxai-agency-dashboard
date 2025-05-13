@@ -56,13 +56,17 @@ export const useStableDiffusion = () => {
       
       // If image file exists, include it for img2img generation
       if (imageFile) {
+        console.log("Processing image file for image-to-image generation");
+        
         // Get the image data
         let imageData = await fileToDataUri(imageFile);
         
         // Resize image to ensure compatible dimensions
         if (engineId.includes("xl-1024") || engineId.includes("xl-beta")) {
+          console.log("Resizing image for SDXL model");
           imageData = await resizeImageToNearestValidDimension(imageData, true); // true for SDXL
         } else {
+          console.log("Resizing image for SD 1.6 model");
           imageData = await resizeImageToNearestValidDimension(imageData, false); // false for SD 1.6
         }
         
@@ -73,6 +77,8 @@ export const useStableDiffusion = () => {
           // Use provided imageStrength or default to 0.35
           imageStrength: imageStrength !== undefined ? imageStrength : 0.35
         };
+        
+        console.log("Image-to-image request prepared with strength:", requestBody.imageStrength);
       }
       
       console.log("Sending generation request with prompt:", prompt, "and engineId:", engineId);

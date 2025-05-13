@@ -1,4 +1,3 @@
-
 import { VALID_DIMENSIONS } from "@/components/creative-studio/stable-diffusion/sdConstants";
 
 /**
@@ -182,6 +181,63 @@ export async function processImagesToSameDimension(
   return processedImages;
 }
 
+/**
+ * Converts an image to a black and white mask
+ * for use with inpainting/outpainting features
+ */
+export async function convertToBlackAndWhiteMask(imageData: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        reject(new Error('Could not get canvas context'));
+        return;
+      }
+      
+      // Draw the original image
+      ctx.drawImage(img, 0, 0);
+      
+      // Get the image data
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+      
+      // Convert to black and white (binary mask)
+      for (let i = 0; i < data.length; i += 4) {
+        // Calculate brightness using weighted RGB values
+        const brightness = (0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]);
+        
+        // Apply threshold to make binary mask
+        const threshold = 128;
+        const value = brightness > threshold ? 255 : 0;
+        
+        // Set RGB values to create black or white
+        data[i] = value;     // R
+        data[i + 1] = value; // G
+        data[i + 2] = value; // B
+        // Keep alpha as is
+      }
+      
+      // Put the modified data back
+      ctx.putImageData(imageData, 0, 0);
+      
+      // Convert to data URI
+      const bwMask = canvas.toDataURL('image/png');
+      resolve(bwMask);
+    };
+    
+    img.onerror = () => {
+      reject(new Error('Failed to load image for mask conversion'));
+    };
+    
+    img.src = imageData;
+  });
+}
+
 // New utility functions for mask and control images processing
 export async function processStabilityImage(
   imageData: string, 
@@ -204,57 +260,4 @@ export async function processStabilityImage(
       // Standard processing for reference images
       return resizeImageToNearestValidDimension(imageData, isSDXL);
   }
-}
-
-// Function to convert an image to a black and white mask
-async function convertToBlackAndWhiteMask(imageData: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => {
-      // Create a canvas to process the image
-      const canvas = document.createElement('canvas');
-      canvas.width = img.width;
-      canvas.height = img.height;
-      const ctx = canvas.getContext('2d');
-      
-      if (!ctx) {
-        reject(new Error('Failed to get canvas context'));
-        return;
-      }
-      
-      // Draw the image on the canvas
-      ctx.drawImage(img, 0, 0);
-      
-      // Get the image data
-      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const data = imgData.data;
-      
-      // Convert to black and white with threshold
-      for (let i = 0; i < data.length; i += 4) {
-        // Calculate luminance
-        const luminance = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-        
-        // Apply threshold (128 is middle of 0-255 range)
-        const value = luminance > 128 ? 255 : 0;
-        
-        // Set RGB to the same value for black or white
-        data[i] = value;     // R
-        data[i + 1] = value; // G
-        data[i + 2] = value; // B
-        // Keep alpha channel as is
-      }
-      
-      // Put the modified image data back on the canvas
-      ctx.putImageData(imgData, 0, 0);
-      
-      // Get the black and white image as data URL
-      resolve(canvas.toDataURL('image/png'));
-    };
-    
-    img.onerror = () => {
-      reject(new Error('Failed to load image for mask processing'));
-    };
-    
-    img.src = imageData;
-  });
 }

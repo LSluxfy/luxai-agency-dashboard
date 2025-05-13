@@ -7,7 +7,7 @@ const corsHeaders = {
 }
 
 // Stability AI API key
-const STABILITY_API_KEY = "sk-hi1F0aMnM5x78l5jCZoA56ZrxQGsONfFGjBmGpI9LQDZoYdr";
+const STABILITY_API_KEY = Deno.env.get("STABILITY_API_KEY") || "";
 const STABILITY_API_HOST = "https://api.stability.ai";
 
 // Valid dimensions for SDXL models
@@ -55,6 +55,16 @@ serve(async (req) => {
   }
 
   try {
+    // Check if API key is configured
+    if (!STABILITY_API_KEY) {
+      return createErrorResponse(
+        "api_key_missing",
+        "api_configuration_error",
+        ["Stability AI API key is not configured"],
+        500
+      );
+    }
+
     const { prompt, engineId, initImage, dimensions, imageStrength, mode, maskImage, controlImage, controlMode } = await req.json();
 
     // Default mode if not specified
@@ -64,6 +74,8 @@ serve(async (req) => {
     const engine = engineId || "stable-diffusion-xl-1024-v1-0";
     
     console.log(`Requested model: ${engine}`);
+    console.log(`Generation mode: ${generationMode}`);
+    console.log(`Has init image: ${initImage ? "yes" : "no"}`);
     
     // Check if the requested model is available in the Stability API
     let availableEngines = [];
@@ -151,51 +163,12 @@ serve(async (req) => {
     console.log(`Request received for mode: ${generationMode}, engine: ${engine}, dimensions: ${width}x${height}`);
     
     // Determine which generation mode to use
-    switch (generationMode) {
-      case "upscale":
-        if (!initImage) {
-          return createErrorResponse(
-            "missing_image",
-            "missing_required_field",
-            ["For upscale mode, an image is required"]
-          );
-        }
-        return handleUpscale(initImage, prompt, engine);
-      case "edit":
-        if (!initImage || !maskImage) {
-          return createErrorResponse(
-            "missing_image_or_mask",
-            "missing_required_field",
-            ["For edit mode, both base image and mask are required"]
-          );
-        }
-        
-        // Verify the dimensions match for the edit mode
-        if (!verifyMatchingImageDimensions(initImage, maskImage)) {
-          // Rather than returning an error, we'll try to resize the mask to match the image
-          // But since we're in a serverless environment, we'll just log this and the frontend should handle it
-          console.log("Warning: Image and mask dimensions don't match. This should be handled by the frontend.");
-        }
-        
-        return handleImageEdit(initImage, maskImage, prompt, engine, imageStrength);
-      case "control":
-        if (!controlImage) {
-          return createErrorResponse(
-            "missing_control_image",
-            "missing_required_field",
-            ["For Control Net mode, a control image is required"]
-          );
-        }
-        return handleControlNet(controlImage, prompt, engine, controlMode, width, height);
-      default:
-        // Default to text-to-image or image-to-image
-        if (initImage && initImage.startsWith('data:image')) {
-          console.log("Image-to-image generation");
-          return handleImageToImage(initImage, prompt, engine, imageStrength);
-        } else {
-          console.log("Text-to-image generation");
-          return handleTextToImage(prompt, engine, width, height);
-        }
+    if (initImage && initImage.startsWith('data:image')) {
+      console.log("Image-to-image generation with reference image");
+      return handleImageToImage(initImage, prompt, engine, imageStrength);
+    } else {
+      console.log("Text-to-image generation");
+      return handleTextToImage(prompt, engine, width, height);
     }
   } catch (error) {
     console.error("Error in generate-with-stability function:", error);
@@ -207,17 +180,6 @@ serve(async (req) => {
     );
   }
 });
-
-/**
- * Helper function to check if two images have matching dimensions
- * This is a simple check based on the data URI headers, not perfect but quick
- */
-function verifyMatchingImageDimensions(image1, image2) {
-  // This is a simplified check and not 100% reliable
-  // The frontend should be responsible for ensuring dimensions match
-  // In a production environment, we'd use proper image processing libraries
-  return true;
-}
 
 /**
  * Handle text-to-image generation
@@ -308,46 +270,46 @@ async function handleTextToImage(prompt, engine, width, height) {
 async function handleImageToImage(initImage, prompt, engine, imageStrength) {
   console.log(`Image-to-image with prompt: "${prompt}", engine: ${engine}, strength: ${imageStrength}`);
   
-  // Extract the base64 part of the data URI
-  const base64Data = initImage.split(',')[1];
-  
-  // Convert base64 to binary
-  const binaryData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
-  
-  // Create a FormData object for the multipart/form-data request
-  const formData = new FormData();
-  
-  // Add the image as a file
-  const imageBlob = new Blob([binaryData], { type: 'image/png' });
-  formData.append("init_image", imageBlob, "image.png");
-  
-  // Add text prompts - ENSURING THESE ARE PROPERLY PASSED
-  // Positive prompt
-  formData.append("text_prompts[0][text]", prompt);
-  formData.append("text_prompts[0][weight]", "1");
-  
-  // Negative prompt
-  formData.append("text_prompts[1][text]", "low quality, blurry, poorly rendered, disfigured, deformed, ugly");
-  formData.append("text_prompts[1][weight]", "-1");
-  
-  formData.append("cfg_scale", "7");
-  formData.append("samples", "1");
-  formData.append("steps", "30");
-  
-  // Use provided imageStrength or default
-  const strengthValue = imageStrength !== undefined ? imageStrength : 0.35;
-  formData.append("image_strength", String(strengthValue));
-  
-  // For stable-diffusion-v1-6, no clip_guidance_preset is needed
-  if (engine.includes("xl-1024") || engine.includes("xl-beta")) {
-    formData.append("clip_guidance_preset", "FAST_BLUE");
-  }
-  
-  // Send request to Stability API
-  const endpoint = `${STABILITY_API_HOST}/v1/generation/${engine}/image-to-image`;
-  console.log(`Calling Stability API endpoint: ${endpoint}`);
-  
   try {
+    // Extract the base64 part of the data URI
+    const base64Data = initImage.split(',')[1];
+    
+    // Convert base64 to binary
+    const binaryData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+    
+    // Create a FormData object for the multipart/form-data request
+    const formData = new FormData();
+    
+    // Add the image as a file
+    const imageBlob = new Blob([binaryData], { type: 'image/png' });
+    formData.append("init_image", imageBlob, "image.png");
+    
+    // Add text prompts - ENSURING THESE ARE PROPERLY PASSED
+    // Positive prompt
+    formData.append("text_prompts[0][text]", prompt);
+    formData.append("text_prompts[0][weight]", "1");
+    
+    // Negative prompt
+    formData.append("text_prompts[1][text]", "low quality, blurry, poorly rendered, disfigured, deformed, ugly");
+    formData.append("text_prompts[1][weight]", "-1");
+    
+    formData.append("cfg_scale", "7");
+    formData.append("samples", "1");
+    formData.append("steps", "30");
+    
+    // Use provided imageStrength or default
+    const strengthValue = imageStrength !== undefined ? imageStrength : 0.35;
+    formData.append("image_strength", String(strengthValue));
+    
+    // For stable-diffusion-v1-6, no clip_guidance_preset is needed
+    if (engine.includes("xl-1024") || engine.includes("xl-beta")) {
+      formData.append("clip_guidance_preset", "FAST_BLUE");
+    }
+    
+    // Send request to Stability API
+    const endpoint = `${STABILITY_API_HOST}/v1/generation/${engine}/image-to-image`;
+    console.log(`Calling Stability API endpoint: ${endpoint}`);
+    
     const response = await fetch(endpoint, {
       method: "POST",
       headers: {
@@ -390,272 +352,6 @@ async function handleImageToImage(initImage, prompt, engine, imageStrength) {
       "request_failed",
       "stability_request_failed",
       [`Failed to connect to Stability AI API (img2img): ${error.message}`],
-      500
-    );
-  }
-}
-
-/**
- * Handle image upscaling
- */
-async function handleUpscale(initImage, prompt, engine) {
-  console.log("Image upscale operation");
-  
-  // Extract the base64 part of the data URI
-  const base64Data = initImage.split(',')[1];
-  
-  // Convert base64 to binary
-  const binaryData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
-  
-  // Create a FormData object for the multipart/form-data request
-  const formData = new FormData();
-  
-  // Add the image as a file
-  const imageBlob = new Blob([binaryData], { type: 'image/png' });
-  formData.append("image", imageBlob, "image.png");
-  
-  // Add optional text prompt if provided
-  if (prompt && prompt.trim()) {
-    formData.append("prompt", prompt);
-  }
-  
-  // Configure upscale parameters
-  formData.append("height", "2048"); // Default upscale height
-  formData.append("width", "2048");  // Default upscale width
-  
-  // Send request to Stability API for upscaling
-  const endpoint = `${STABILITY_API_HOST}/v1/generation/${engine}/image-to-image/upscale`;
-  console.log(`Calling Stability API upscale endpoint: ${endpoint}`);
-  
-  try {
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${STABILITY_API_KEY}`,
-      },
-      body: formData
-    });
-    
-    if (!response.ok) {
-      console.error(`Error in Stability API (upscale): ${response.status} ${response.statusText}`);
-      let errorBody = "";
-      try {
-        errorBody = await response.text();
-        console.error(`Error details (upscale): ${errorBody}`);
-      } catch (e) {
-        console.error("Could not get error details");
-      }
-      
-      if (response.status === 404) {
-        return createErrorResponse(
-          "upscale_not_available",
-          "stability_upscale_not_available",
-          [`The model ${engine} does not support image upscaling. Please check if you're using a compatible model.`],
-          404
-        );
-      }
-      
-      return createErrorResponse(
-        `api_error_${response.status}`,
-        "stability_api_error",
-        [`Error in Stability AI API (upscale): ${response.statusText}`, errorBody],
-        response.status
-      );
-    }
-    
-    return handleStabilityResponse(response);
-  } catch (error) {
-    console.error("Error in API call (upscale):", error);
-    return createErrorResponse(
-      "request_failed",
-      "stability_request_failed",
-      [`Failed to connect to Stability AI API (upscale): ${error.message}`],
-      500
-    );
-  }
-}
-
-/**
- * Handle image editing with mask
- */
-async function handleImageEdit(initImage, maskImage, prompt, engine, imageStrength) {
-  console.log("Image edit with mask operation");
-  
-  // Extract the base64 parts of the data URIs
-  const imageBase64Data = initImage.split(',')[1];
-  const maskBase64Data = maskImage.split(',')[1];
-  
-  // Convert base64 to binary
-  const imageBinaryData = Uint8Array.from(atob(imageBase64Data), c => c.charCodeAt(0));
-  const maskBinaryData = Uint8Array.from(atob(maskBase64Data), c => c.charCodeAt(0));
-  
-  // Create a FormData object for the multipart/form-data request
-  const formData = new FormData();
-  
-  // Add the image and mask as files
-  const imageBlob = new Blob([imageBinaryData], { type: 'image/png' });
-  const maskBlob = new Blob([maskBinaryData], { type: 'image/png' });
-  formData.append("init_image", imageBlob, "image.png");
-  formData.append("mask_image", maskBlob, "mask.png");
-  
-  // Add text prompts
-  formData.append("text_prompts[0][text]", prompt);
-  formData.append("text_prompts[0][weight]", "1");
-  
-  formData.append("text_prompts[1][text]", "low quality, blurry, poorly rendered, disfigured, deformed, ugly");
-  formData.append("text_prompts[1][weight]", "-1");
-  
-  // Configure image-to-image parameters
-  formData.append("cfg_scale", "7");
-  formData.append("samples", "1");
-  formData.append("steps", "30");
-  
-  // Use provided imageStrength or default to higher value for edits
-  const strengthValue = imageStrength !== undefined ? imageStrength : 0.7;
-  
-  // IMPORTANT: For masking endpoint, we use mask_source to control the edit area
-  formData.append("mask_source", "MASK_IMAGE_WHITE");
-  
-  // For stable-diffusion-v1-6, no clip_guidance_preset is needed
-  if (engine.includes("xl-1024") || engine.includes("xl-beta")) {
-    formData.append("clip_guidance_preset", "FAST_BLUE");
-  }
-  
-  // Send request to Stability API for masked editing
-  const endpoint = `${STABILITY_API_HOST}/v1/generation/${engine}/image-to-image/masking`;
-  console.log(`Calling Stability API masking endpoint: ${endpoint}`);
-  
-  try {
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${STABILITY_API_KEY}`,
-      },
-      body: formData
-    });
-    
-    if (!response.ok) {
-      console.error(`Error in Stability API (mask): ${response.status} ${response.statusText}`);
-      let errorBody = "";
-      try {
-        errorBody = await response.text();
-        console.error(`Error details (mask): ${errorBody}`);
-      } catch (e) {
-        console.error("Could not get error details");
-      }
-      
-      if (response.status === 404) {
-        return createErrorResponse(
-          "masking_not_available",
-          "stability_masking_not_available",
-          [`The model ${engine} does not support editing with mask. Please check if you're using a compatible model.`],
-          404
-        );
-      }
-      
-      return createErrorResponse(
-        `api_error_${response.status}`,
-        "stability_api_error",
-        [`Error in Stability AI API (mask): ${response.statusText}`, errorBody],
-        response.status
-      );
-    }
-    
-    return handleStabilityResponse(response);
-  } catch (error) {
-    console.error("Error in API call (mask):", error);
-    return createErrorResponse(
-      "request_failed",
-      "stability_request_failed",
-      [`Failed to connect to Stability AI API (mask): ${error.message}`],
-      500
-    );
-  }
-}
-
-/**
- * Handle Control Net generation
- */
-async function handleControlNet(controlImage, prompt, engine, controlMode, width, height) {
-  console.log(`Control Net generation with mode: ${controlMode || 'canny'}`);
-  
-  // Extract the base64 part of the data URI
-  const base64Data = controlImage.split(',')[1];
-  
-  // Convert base64 to binary
-  const binaryData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
-  
-  // Create a FormData object for the multipart/form-data request
-  const formData = new FormData();
-  
-  // Add the control image as a file
-  const imageBlob = new Blob([binaryData], { type: 'image/png' });
-  formData.append("image", imageBlob, "control_image.png");
-  
-  // Add text prompts
-  formData.append("text_prompts[0][text]", prompt);
-  formData.append("text_prompts[0][weight]", "1");
-  
-  formData.append("text_prompts[1][text]", "low quality, blurry, poorly rendered, disfigured, deformed, ugly");
-  formData.append("text_prompts[1][weight]", "-1");
-  
-  // Configure control net parameters
-  formData.append("cfg_scale", "7");
-  formData.append("samples", "1");
-  formData.append("steps", "30");
-  formData.append("width", String(width));
-  formData.append("height", String(height));
-  
-  // Set the control mode (type of processing to apply to the control image)
-  formData.append("control_type", controlMode || "canny");
-  
-  // Send request to Stability API for control net
-  const endpoint = `${STABILITY_API_HOST}/v1/generation/${engine}/image-to-image/control`;
-  console.log(`Calling Stability API control endpoint: ${endpoint}`);
-  
-  try {
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${STABILITY_API_KEY}`,
-      },
-      body: formData
-    });
-    
-    if (!response.ok) {
-      console.error(`Error in Stability API (control): ${response.status} ${response.statusText}`);
-      let errorBody = "";
-      try {
-        errorBody = await response.text();
-        console.error(`Error details (control): ${errorBody}`);
-      } catch (e) {
-        console.error("Could not get error details");
-      }
-      
-      if (response.status === 404) {
-        return createErrorResponse(
-          "control_not_available",
-          "stability_control_not_available",
-          [`The model ${engine} does not support Control Net. Please check if you're using a compatible model.`],
-          404
-        );
-      }
-      
-      return createErrorResponse(
-        `api_error_${response.status}`,
-        "stability_api_error",
-        [`Error in Stability AI API (control): ${response.statusText}`, errorBody],
-        response.status
-      );
-    }
-    
-    return handleStabilityResponse(response);
-  } catch (error) {
-    console.error("Error in API call (control):", error);
-    return createErrorResponse(
-      "request_failed",
-      "stability_request_failed",
-      [`Failed to connect to Stability AI API (control): ${error.message}`],
       500
     );
   }
