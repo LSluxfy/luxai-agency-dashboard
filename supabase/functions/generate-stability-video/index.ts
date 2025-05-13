@@ -30,7 +30,7 @@ serve(async (req) => {
     if (!STABILITY_API_KEY) {
       console.error("STABILITY_API_KEY is not configured");
       return new Response(
-        JSON.stringify({ error: "Chave da API Stability não configurada" }),
+        JSON.stringify({ error: "Chave da API Stability não configurada. Configure-a nas configurações do projeto." }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
@@ -104,16 +104,29 @@ serve(async (req) => {
       
       // Get response text for better error diagnosis
       const responseText = await response.text();
-      console.log("Resposta da API (texto):", responseText);
+      console.log("Resposta da API (status):", response.status);
+      console.log("Resposta da API (texto):", responseText.substring(0, 500)); // Log first 500 chars to avoid huge logs
       
       // Handle non-successful responses
       if (!response.ok) {
-        let errorMessage = `Erro da API (${response.status}): `;
+        let errorMessage = `Erro da API Stability (${response.status}): `;
         
         try {
           // Try to parse as JSON if possible
           const errorData = JSON.parse(responseText);
           errorMessage += errorData.message || responseText;
+          
+          // Add more specific error information based on HTTP status code
+          if (response.status === 404) {
+            errorMessage = "O modelo de vídeo solicitado (SVD) não foi encontrado. Certifique-se de que ele esteja habilitado na sua conta Stability AI.";
+          } else if (response.status === 402) {
+            errorMessage = "Sua conta Stability AI não possui créditos suficientes ou o modelo não está disponível para seu plano.";
+          } else if (response.status === 401) {
+            errorMessage = "Chave de API inválida ou expirada. Verifique suas credenciais da Stability AI.";
+          } else if (response.status === 429) {
+            errorMessage = "Limite de requisições excedido. Tente novamente mais tarde.";
+          }
+          
           console.error("Erro da API Stability (JSON):", errorData);
         } catch (jsonError) {
           // Not valid JSON, use the text response

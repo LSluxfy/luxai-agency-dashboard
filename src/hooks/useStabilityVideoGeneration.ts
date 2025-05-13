@@ -46,6 +46,7 @@ export const useStabilityVideoGeneration = () => {
       }
 
       console.log(`Iniciando geração de vídeo com Stability API (Engine: ${options.engineId || "stable-video-diffusion"})`);
+      console.log(`Opções: motion=${options.motionBucketId}, steps=${options.steps}, tamanho=${options.width}x${options.height}`);
       
       // Call the Supabase Edge Function to initiate video generation
       const { data, error: initError } = await supabase.functions.invoke("generate-stability-video", {
@@ -66,13 +67,26 @@ export const useStabilityVideoGeneration = () => {
       }
 
       if (!data) {
-        console.error("Resposta da função sem dados:", data);
+        console.error("Resposta da função sem dados");
         throw new Error("Não foi possível iniciar a geração de vídeo: resposta vazia");
       }
 
+      console.log("Resposta da API:", data);
+
       if (data.error) {
         console.error("Erro retornado pela API:", data.error);
-        throw new Error(`Erro da API Stability: ${data.error}`);
+        
+        // Mensagens de erro mais amigáveis baseadas no tipo de erro
+        let errorMessage = data.error;
+        if (data.error.includes("not found") || data.error.includes("404")) {
+          errorMessage = "O modelo de vídeo (SVD) não foi encontrado. Verifique se ele está habilitado na sua conta Stability AI.";
+        } else if (data.error.includes("402") || data.error.includes("payment")) {
+          errorMessage = "Sua conta não possui créditos suficientes para gerar vídeos com o SVD. Adicione créditos na sua conta Stability AI.";
+        } else if (data.error.includes("401") || data.error.includes("Unauthorized")) {
+          errorMessage = "Chave de API inválida ou expirada. Verifique suas credenciais da Stability AI.";
+        }
+        
+        throw new Error(errorMessage);
       }
 
       if (!data.id) {
@@ -83,6 +97,9 @@ export const useStabilityVideoGeneration = () => {
       console.log("Geração iniciada com ID:", data.id);
       setPredictionId(data.id);
       setGenerationProgress(20);
+      toast.success("Geração de vídeo iniciada com sucesso!", {
+        description: "Aguardando processamento. Isso pode levar até 1 minuto."
+      });
 
       // Start polling for results
       let attempts = 0;
@@ -183,6 +200,8 @@ export const useStabilityVideoGeneration = () => {
       let errorMessage = err.message || "Erro ao gerar vídeo";
       if (errorMessage.includes("404") || errorMessage.includes("not found") || errorMessage.includes("não foi encontrado")) {
         errorMessage = "O modelo de vídeo não foi encontrado. Verifique se o modelo está habilitado na sua conta Stability AI.";
+      } else if (errorMessage.includes("Edge Function returned a non-2xx status code")) {
+        errorMessage = "Houve um problema na comunicação com a API Stability. Verifique sua chave de API e se o modelo SVD está disponível na sua conta.";
       }
       
       setError(errorMessage);

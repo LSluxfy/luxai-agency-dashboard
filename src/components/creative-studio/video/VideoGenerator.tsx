@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { Info } from "lucide-react";
+import { Info, AlertCircle } from "lucide-react";
 import VideoFileUpload from "./VideoFileUpload";
 import VideoUrlInput from "./VideoUrlInput";
 import VideoViewer from "./VideoViewer";
@@ -11,7 +11,8 @@ import VideoGenerationProgress from "./VideoGenerationProgress";
 import { useStabilityVideoGeneration } from "@/hooks/useStabilityVideoGeneration";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { toast } from "sonner";
 
 // Define valid dimensions for SDXL and SD 1.6
 const SDXL_DIMENSIONS = [
@@ -109,7 +110,70 @@ const VideoGenerator = () => {
     } catch (err: any) {
       console.error("Erro na interface ao gerar vídeo:", err);
       setApiErrorDetails(err.message || "Erro desconhecido ao iniciar geração");
+      toast.error("Falha ao iniciar geração de vídeo", {
+        description: err.message || "Erro desconhecido"
+      });
     }
+  };
+  
+  // Função para exibir mensagem de erro com sugestões para o usuário
+  const renderErrorAlert = () => {
+    if (!error && !apiErrorDetails) return null;
+    
+    const errorMessage = error || apiErrorDetails;
+    let title = "Erro na geração de vídeo";
+    let suggestions = [];
+    
+    // Determinar tipo de erro para mostrar sugestões relevantes
+    if (errorMessage?.includes("não foi encontrado") || errorMessage?.includes("not found") || errorMessage?.includes("404")) {
+      title = "Modelo SVD não encontrado";
+      suggestions = [
+        "O modelo Stable Video Diffusion (SVD) não está disponível na sua conta",
+        "Verifique se você habilitou o modelo SVD no seu painel da Stability AI",
+        "Certifique-se de que sua conta tem acesso a esse modelo específico"
+      ];
+    } else if (errorMessage?.includes("créditos") || errorMessage?.includes("402") || errorMessage?.includes("payment")) {
+      title = "Problema com créditos";
+      suggestions = [
+        "Sua conta Stability AI não possui créditos suficientes",
+        "Você precisa adicionar créditos à sua conta para usar o SVD",
+        "Verifique seu plano na Stability AI e status de pagamento"
+      ];
+    } else if (errorMessage?.includes("chave") || errorMessage?.includes("API key") || errorMessage?.includes("401")) {
+      title = "Problema com a chave de API";
+      suggestions = [
+        "Sua chave da API Stability parece inválida ou expirada",
+        "Verifique se a chave foi inserida corretamente nas configurações",
+        "Gere uma nova chave no painel da Stability AI se necessário"
+      ];
+    } else if (errorMessage?.includes("limite") || errorMessage?.includes("429") || errorMessage?.includes("rate limit")) {
+      title = "Limite de requisições excedido";
+      suggestions = [
+        "Você atingiu o limite de requisições da API Stability",
+        "Aguarde alguns minutos antes de tentar novamente",
+        "Verifique os limites do seu plano na Stability AI"
+      ];
+    }
+    
+    return (
+      <Alert variant="destructive" className="mt-4">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>{title}</AlertTitle>
+        <AlertDescription className="space-y-2">
+          <p className="text-sm">{errorMessage}</p>
+          {suggestions.length > 0 && (
+            <div className="mt-2">
+              <p className="text-sm font-medium mb-1">Sugestões:</p>
+              <ul className="list-disc pl-5 text-xs space-y-1">
+                {suggestions.map((suggestion, index) => (
+                  <li key={index}>{suggestion}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </AlertDescription>
+      </Alert>
+    );
   };
   
   return (
@@ -213,17 +277,7 @@ const VideoGenerator = () => {
                 />
               )}
               
-              {(error || apiErrorDetails) && !isGenerating && (
-                <Alert variant="destructive" className="mt-4">
-                  <AlertDescription className="space-y-1">
-                    <p className="font-medium">Erro na geração do vídeo:</p>
-                    <p className="text-sm">{error || apiErrorDetails}</p>
-                    <p className="text-xs mt-1">
-                      Verifique se sua conta Stability AI possui o modelo SVD ativado e tem créditos suficientes.
-                    </p>
-                  </AlertDescription>
-                </Alert>
-              )}
+              {renderErrorAlert()}
               
               {isGenerating && pollingCount > 0 && (
                 <p className="text-xs text-muted-foreground mt-2 text-center">
