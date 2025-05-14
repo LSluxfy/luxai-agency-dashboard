@@ -22,9 +22,9 @@ const Logo = ({ variant = "default" }: LogoProps) => {
           alt="LuxFy Logo" 
           className={cn(
             "mr-2",
-            variant === "default" && "h-11",
-            variant === "sidebar" && "h-10",
-            variant === "large" && "h-14"
+            variant === "default" && "h-14",
+            variant === "sidebar" && "h-12",
+            variant === "large" && "h-18"
           )}
         />
       </div>
