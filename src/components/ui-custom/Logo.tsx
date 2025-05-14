@@ -21,15 +21,15 @@ const Logo = ({ variant = "default" }: LogoProps) => {
           src="/lovable-uploads/3282e950-f06b-4694-83e9-703c54578366.png" 
           alt="LuxFy Logo" 
           className={cn(
-            "mr-2",
-            variant === "default" && "h-14",
-            variant === "sidebar" && "h-12",
-            variant === "large" && "h-18"
+            "mr-1", // Reduced margin to bring logo closer to text
+            variant === "default" && "h-16", // Increased from h-14
+            variant === "sidebar" && "h-14", // Increased from h-12
+            variant === "large" && "h-20"  // Increased from h-18
           )}
         />
       </div>
       {variant !== "sidebar" && (
-        <span className="font-light ml-2">AgencIA</span>
+        <span className="font-light">AgencIA</span>
       )}
     </div>
   );
